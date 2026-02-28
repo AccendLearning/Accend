@@ -22,3 +22,5 @@ env/
 .pytest_cache/
 .coverage
 htmlcov/
+
+testaudio.wav
