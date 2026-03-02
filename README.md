@@ -86,58 +86,61 @@ Accend is currently under active development.
 Features and architecture may evolve as the product grows.
 
 ## Repo Structure
-ACCEND/  
-├── apps/  
-│   └── mobile_interface/  
-│  
-├── backend/  
-│   ├── services/  
-│   │   ├── api-gateway/  
-│   │   ├── courses-service/  
-│   │   │   ├── app/  
-│   │   │   │   ├── main.py  
-│   │   │   │   ├── config.py  
-│   │   │   │   ├── dependencies.py  
-│   │   │   │  
-│   │   │   │   ├── routers/  
-│   │   │   │   │   └── courses.py  
-│   │   │   │  
-│   │   │   │   ├── schemas/  
-│   │   │   │   │   ├── course_schema.py  
-│   │   │   │   │   └── lesson_schema.py  
-│   │   │   │  
-│   │   │   │   ├── services/  
-│   │   │   │   │   └── course_service.py  
-│   │   │   │  
-│   │   │   │   ├── repositories/  
-│   │   │   │   │   ├── course_repo.py              # interface/contract  
-│   │   │   │   │   └── supabase_course_repo.py     # router → service → repository → supabase  
-│   │   │   │  
-│   │   │   │   ├── clients/  
-│   │   │   │   │   └── supabase.py  
-│   │   │   │  
-│   │   │   │   └── utils/  
-│   │   │   │       └── errors.py  
-│   │   │   ├── tests/  
-│   │   │   ├── Dockerfile  
-│   │   │   └── requirements.txt  
-│   │   ├── ai-service/  
-│   │   └── sessions-service/  
-│   │  
-│   ├── shared/  
-│   │   ├── auth/  
-│   │   │   └── jwt.py  
-│   │   ├── http/  
-│   │   │   └── client.py             # shared http helpers  
-│   │   └── logging.py  
-│   │  
-│   └── docker-compose.yml  
-│  
-├── contracts/  
-│   └── openapi/  
-│  
-├── infra/  
-│   ├── supabase/  
-│   └── scripts/  
-│  
-└── README.md  
+
+```
+ACCEND/
+├── apps/
+│   └── mobile_interface/
+│
+├── backend/
+│   ├── services/
+│   │   ├── api-gateway/
+│   │   ├── courses-service/
+│   │   │   ├── app/
+│   │   │   │   ├── main.py
+│   │   │   │   ├── config.py
+│   │   │   │   ├── dependencies.py
+│   │   │   │
+│   │   │   │   ├── routers/
+│   │   │   │   │   └── courses.py
+│   │   │   │
+│   │   │   │   ├── schemas/
+│   │   │   │   │   ├── course_schema.py
+│   │   │   │   │   └── lesson_schema.py
+│   │   │   │
+│   │   │   │   ├── services/
+│   │   │   │   │   └── course_service.py
+│   │   │   │
+│   │   │   │   ├── repositories/
+│   │   │   │   │   ├── course_repo.py              # interface/contract
+│   │   │   │   │   └── supabase_course_repo.py     # router → service → repository → supabase
+│   │   │   │
+│   │   │   │   ├── clients/
+│   │   │   │   │   └── supabase.py
+│   │   │   │
+│   │   │   │   └── utils/
+│   │   │   │       └── errors.py
+│   │   │   ├── tests/
+│   │   │   ├── Dockerfile
+│   │   │   └── requirements.txt
+│   │   ├── ai-service/
+│   │   └── sessions-service/
+│   │
+│   ├── shared/
+│   │   ├── auth/
+│   │   │   └── jwt.py
+│   │   ├── http/
+│   │   │   └── client.py             # shared http helpers
+│   │   └── logging.py
+│   │
+│   └── docker-compose.yml
+│
+├── contracts/
+│   └── openapi/
+│
+├── infra/
+│   ├── supabase/
+│   └── scripts/
+│
+└── README.md
+```
