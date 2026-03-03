@@ -12,7 +12,15 @@ class _SoloPracticePageState extends State<SoloPracticePage> {
 
   void _onMicPressed() {
     setState(() {
-      _micStateIndex = (_micStateIndex + 1) % 3;
+      if (_micStateIndex < 2) {
+        _micStateIndex += 1;
+      }
+    });
+  }
+
+  void _onRetryPressed() {
+    setState(() {
+      _micStateIndex = 0;
     });
   }
 
@@ -30,6 +38,8 @@ class _SoloPracticePageState extends State<SoloPracticePage> {
 
   @override
   Widget build(BuildContext context) {
+    final bool showRetrySubmit = _micStateIndex == 2;
+
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -96,21 +106,42 @@ class _SoloPracticePageState extends State<SoloPracticePage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    width: 96,
-                    height: 96,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        width: 2, // thicker outline
+                  if (showRetrySubmit) ...[
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _onRetryPressed,
+                        child: const Text('Retry'),
                       ),
                     ),
-                    child: IconButton(
+                    const SizedBox(width: 12),
+                  ],
+                  SizedBox(
+                    width: 96,
+                    height: 96,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        shape: const CircleBorder(),
+                        padding: EdgeInsets.zero,
+                        alignment: Alignment.center,
+                      ),
                       onPressed: _onMicPressed,
-                      icon: Icon(_currentMicIcon()),
-                      iconSize: 56,
+                      child: Icon(
+                        _currentMicIcon(),
+                        size: 56,
+                      ),
                     ),
                   ),
+                  if (showRetrySubmit) ...[
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          // TODO: submit audio in the future
+                        },
+                        child: const Text('Submit'),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
