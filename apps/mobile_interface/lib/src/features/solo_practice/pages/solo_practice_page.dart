@@ -1,7 +1,32 @@
 import 'package:flutter/material.dart';
 
-class SoloPracticePage extends StatelessWidget {
+class SoloPracticePage extends StatefulWidget {
   const SoloPracticePage({super.key});
+
+  @override
+  State<SoloPracticePage> createState() => _SoloPracticePageState();
+}
+
+class _SoloPracticePageState extends State<SoloPracticePage> {
+  int _micStateIndex = 0; // 0 = mic, 1 = recording, 2 = play
+
+  void _onMicPressed() {
+    setState(() {
+      _micStateIndex = (_micStateIndex + 1) % 3;
+    });
+  }
+
+  IconData _currentMicIcon() {
+    switch (_micStateIndex) {
+      case 1:
+        return Icons.fiber_manual_record; // circle for recording
+      case 2:
+        return Icons.play_arrow; // play icon
+      case 0:
+      default:
+        return Icons.mic; // default mic
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +60,7 @@ class SoloPracticePage extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         const LinearProgressIndicator(
-                          value: 0.0, // placeholder for now
+                          value: 0.2, // placeholder for now
                         ),
                       ],
                     ),
@@ -55,12 +80,12 @@ class SoloPracticePage extends StatelessWidget {
                       width: 280,
                       child: Card(
                         child: Center(
-                          child: Text('Prompt box goes here'),
+                          child: Text('Folks, this is fantastic!'),
                         ),
                       ),
                     ),
                     SizedBox(height: 16),
-                    Text('This is the sentence the user will repeat out loud.'),
+                    Text('Record yourself using the microphone button below!'),
                   ],
                 ),
               ),
@@ -76,13 +101,13 @@ class SoloPracticePage extends StatelessWidget {
                     height: 96,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(),
+                      border: Border.all(
+                        width: 2, // thicker outline
+                      ),
                     ),
                     child: IconButton(
-                      onPressed: () {
-                        // TODO: handle microphone press
-                      },
-                      icon: const Icon(Icons.mic),
+                      onPressed: _onMicPressed,
+                      icon: Icon(_currentMicIcon()),
                       iconSize: 56,
                     ),
                   ),
