@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../app/constants.dart';
 
 const List<String> _mockCards = [
   'The quick brown fox jumped over the lazy dog.',
@@ -108,8 +110,24 @@ class _SoloPracticePageState extends State<SoloPracticePage> {
   @override
   Widget build(BuildContext context) {
     final bool showRetrySubmit = _micStateIndex == 2;
+    final headingStyle = GoogleFonts.inter(
+      color: AppColors.textPrimary,
+      fontSize: 16,
+      fontWeight: FontWeight.w700,
+    );
+    final bodyStyle = GoogleFonts.publicSans(
+      color: AppColors.textSecondary,
+      fontSize: 14,
+      fontWeight: FontWeight.w500,
+    );
+    final promptStyle = GoogleFonts.publicSans(
+      color: AppColors.textPrimary,
+      fontSize: 16,
+      fontWeight: FontWeight.w500,
+    );
 
     return Scaffold(
+      backgroundColor: AppColors.primaryBg,
       body: SafeArea(
         child: Column(
           children: [
@@ -118,8 +136,14 @@ class _SoloPracticePageState extends State<SoloPracticePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 IconButton(
-                  onPressed: () => Navigator.of(context).maybePop(),
-                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () {
+                    setState(() {
+                      _currentCardIndex = 0;
+                      _micStateIndex = 0;
+                    });
+                    Navigator.of(context).maybePop();
+                  },
+                  icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
                 ),
                 const SizedBox(height: 8),
                 Center(
@@ -130,14 +154,20 @@ class _SoloPracticePageState extends State<SoloPracticePage> {
                       children: [
                         Row(
                           children: [
-                            Text('${_currentCardIndex + 1}/$_totalCards'),
+                            Text('${_currentCardIndex + 1}/$_totalCards', style: bodyStyle),
                             const Spacer(),
-                            const Text('Lesson Title'),
+                            Text('Lesson Title', style: headingStyle),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        LinearProgressIndicator(
-                          value: _progress,
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(AppRadii.sm),
+                          child: LinearProgressIndicator(
+                            value: _progress,
+                            minHeight: 8,
+                            backgroundColor: AppColors.border,
+                            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accent),
+                          ),
                         ),
                       ],
                     ),
@@ -151,25 +181,25 @@ class _SoloPracticePageState extends State<SoloPracticePage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SizedBox(
-                      height: 120,
-                      width: 280,
-                      child: Card(
-                        child: Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Text(
-                              _currentCard,
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
+                    Container(
+                      width: 300,
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(AppRadii.lg),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Text(
+                        _currentCard,
+                        textAlign: TextAlign.center,
+                        style: promptStyle,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    const Text(
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
                       'Record yourself using the microphone button below!',
                       textAlign: TextAlign.center,
+                      style: bodyStyle,
                     ),
                   ],
                 ),
@@ -177,7 +207,7 @@ class _SoloPracticePageState extends State<SoloPracticePage> {
             ),
             // Bottom section
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppSpacing.md),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -185,36 +215,68 @@ class _SoloPracticePageState extends State<SoloPracticePage> {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: _onRetryPressed,
-                        child: const Text('Retry'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.surface,
+                          foregroundColor: AppColors.textPrimary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppRadii.md),
+                            side: const BorderSide(color: AppColors.border),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                        ),
+                        child: Text(
+                          'Retry',
+                          style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary).copyWith(inherit: false),
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppSpacing.sm),
                   ],
-                  SizedBox(
+                  Container(
                     width: 96,
                     height: 96,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: _micStateIndex == 1
+                              ? AppColors.failure.withOpacity(0.4)
+                              : AppColors.accent.withOpacity(0.3),
+                          blurRadius: 20,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
+                        backgroundColor: _micStateIndex == 1
+                            ? AppColors.failure
+                            : AppColors.accent,
+                        foregroundColor: AppColors.primaryBg,
                         shape: const CircleBorder(),
                         padding: EdgeInsets.zero,
                         alignment: Alignment.center,
                       ),
                       onPressed: _onMicPressed,
-                      child: Icon(
-                        _currentMicIcon(),
-                        size: 56,
-                      ),
+                      child: Icon(_currentMicIcon(), size: 56),
                     ),
                   ),
                   if (showRetrySubmit) ...[
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: ElevatedButton(
                         onPressed: _onSubmitPressed,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.action,
+                          foregroundColor: const Color(0xFF101828),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppRadii.md),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                        ),
                         child: Text(
-                          _currentCardIndex == _totalCards - 1
-                              ? 'Finish'
-                              : 'Submit',
+                          _currentCardIndex == _totalCards - 1 ? 'Finish' : 'Submit',
+                          style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF101828)).copyWith(inherit: false),
                         ),
                       ),
                     ),
