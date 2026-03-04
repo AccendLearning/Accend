@@ -1,6 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 
+const List<String> _mockCards = [
+  'The quick brown fox jumped over the lazy dog.',
+  'She sells seashells by the seashore.',
+  'How much wood would a woodchuck chuck?',
+  'Peter Piper picked a peck of pickled peppers.',
+  'I scream, you scream, we all scream for ice cream.',
+  'Red lorry, yellow lorry.',
+  'Unique New York, unique New York.',
+  'Buffalo buffalo Buffalo buffalo buffalo buffalo Buffalo buffalo.',
+  'The sixth sick sheikh\'s sixth sheep\'s sick.',
+  'Fresh French fried fish fingers.',
+  'I saw Susie sitting in a shoeshine shop.',
+  'Lesser leather never weathered wetter weather better.',
+  'Can you can a can as a canner can can a can?',
+  'Willy\'s real rear wheel.',
+  'The thirty-three thieves thought that they thrilled the throne.',
+  'Six sleek swans swam swiftly southwards.',
+  'How can a clam cram in a clean cream can?',
+  'Fuzzy Wuzzy was a bear. Fuzzy Wuzzy had no hair.',
+  'Near an ear, a nearer ear, a nearly eerie ear.',
+  'You\'ve done it! Great work completing the lesson.',
+];
+
 class SoloPracticePage extends StatefulWidget {
   const SoloPracticePage({super.key});
 
@@ -9,11 +32,14 @@ class SoloPracticePage extends StatefulWidget {
 }
 
 class _SoloPracticePageState extends State<SoloPracticePage> {
+  int _currentCardIndex = 0;
   int _micStateIndex = 0; // 0 = mic, 1 = recording, 2 = play
   final AudioPlayer _audioPlayer = AudioPlayer();
-  // Note: audioplayers' AssetSource is effectively relative to the `assets/` bundle prefix.
-  // With `pubspec.yaml` declaring `assets/audio/testaudio.wav`, pass `audio/testaudio.wav` here.
   static const String _sampleAudioAsset = 'audio/testaudio.wav';
+
+  int get _totalCards => _mockCards.length;
+  String get _currentCard => _mockCards[_currentCardIndex];
+  double get _progress => (_currentCardIndex + 1) / _totalCards;
 
   @override
   void dispose() {
@@ -27,13 +53,10 @@ class _SoloPracticePageState extends State<SoloPracticePage> {
         _micStateIndex += 1;
       });
     } else {
-      // In play state: play bundled sample audio asset
       try {
         await _audioPlayer.stop();
         await _audioPlayer.play(AssetSource(_sampleAudioAsset));
-      } catch (_) {
-        // Swallow errors for now; real handling can be added later.
-      }
+      } catch (_) {}
     }
   }
 
@@ -43,15 +66,42 @@ class _SoloPracticePageState extends State<SoloPracticePage> {
     });
   }
 
+  void _onSubmitPressed() {
+    if (_currentCardIndex < _totalCards - 1) {
+      setState(() {
+        _currentCardIndex += 1;
+        _micStateIndex = 0;
+      });
+    } else {
+      // Completed all cards
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Lesson Complete! 🎉'),
+          content: const Text('You\'ve completed all 20 exercises. Great work!'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).maybePop();
+              },
+              child: const Text('Finish'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
   IconData _currentMicIcon() {
     switch (_micStateIndex) {
       case 1:
-        return Icons.fiber_manual_record; // circle for recording
+        return Icons.fiber_manual_record;
       case 2:
-        return Icons.play_arrow; // play icon
+        return Icons.play_arrow;
       case 0:
       default:
-        return Icons.mic; // default mic
+        return Icons.mic;
     }
   }
 
@@ -63,14 +113,12 @@ class _SoloPracticePageState extends State<SoloPracticePage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Top section: back button above centered progress/info
+            // Top section
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 IconButton(
-                  onPressed: () {
-                    Navigator.of(context).maybePop();
-                  },
+                  onPressed: () => Navigator.of(context).maybePop(),
                   icon: const Icon(Icons.arrow_back),
                 ),
                 const SizedBox(height: 8),
@@ -81,15 +129,15 @@ class _SoloPracticePageState extends State<SoloPracticePage> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Row(
-                          children: const [
-                            Text('1/20'),
-                            Spacer(),
-                            Text('Lesson Title'),
+                          children: [
+                            Text('${_currentCardIndex + 1}/$_totalCards'),
+                            const Spacer(),
+                            const Text('Lesson Title'),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        const LinearProgressIndicator(
-                          value: 0.2, // placeholder for now
+                        LinearProgressIndicator(
+                          value: _progress,
                         ),
                       ],
                     ),
@@ -97,35 +145,37 @@ class _SoloPracticePageState extends State<SoloPracticePage> {
                 ),
               ],
             ),
-            // Middle section: prompt box and text to repeat
+            // Middle section
             Expanded(
               child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      // Placeholder for prompt box
-                      SizedBox(
-                        height: 120,
-                        width: 280,
-                        child: Card(
-                          child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      height: 120,
+                      width: 280,
+                      child: Card(
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
                             child: Text(
-                              'The quick brown fox jumped over the lazy dog.',
+                              _currentCard,
                               textAlign: TextAlign.center,
                             ),
                           ),
                         ),
                       ),
-                      SizedBox(height: 16),
-                      Text(
-                        'Record yourself using the microphone button below!',
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Record yourself using the microphone button below!',
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
             ),
-            // Bottom section: controls (microphone button for now)
+            // Bottom section
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -160,10 +210,12 @@ class _SoloPracticePageState extends State<SoloPracticePage> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () {
-                          // TODO: submit audio in the future
-                        },
-                        child: const Text('Submit'),
+                        onPressed: _onSubmitPressed,
+                        child: Text(
+                          _currentCardIndex == _totalCards - 1
+                              ? 'Finish'
+                              : 'Submit',
+                        ),
                       ),
                     ),
                   ],
