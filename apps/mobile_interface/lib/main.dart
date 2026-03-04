@@ -39,11 +39,13 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    // stack pages and show only the selected one
     return Scaffold(
       body: IndexedStack(
         index: _selectedIndex,
         children: _pages,
       ),
+      // use our reusable bottom nav bar and pass in the current index and a callback to update it
       bottomNavigationBar: BottomNavBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) => setState(() => _selectedIndex = index),
