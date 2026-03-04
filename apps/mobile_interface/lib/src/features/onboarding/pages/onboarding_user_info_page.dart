@@ -80,31 +80,31 @@ class _OnboardingUserInfoPageState extends State<OnboardingUserInfoPage> {
                         icon: const Icon(Icons.arrow_back_ios_new_rounded),
                       ),
                       const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: Text(
-                          'Onboarding',
-                          style: t.textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
+                      // Container(
+                      //   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      //   decoration: BoxDecoration(
+                      //     color: AppColors.surface,
+                      //     borderRadius: BorderRadius.circular(10),
+                      //     border: Border.all(color: AppColors.border),
+                      //   ),
+                      //   // child: Text(
+                      //   //   'Onboarding',
+                      //   //   style: t.textTheme.bodyMedium?.copyWith(
+                      //   //     color: AppColors.textPrimary,
+                      //   //     fontWeight: FontWeight.w700,
+                      //   //   ),
+                      //   // ),
+                      // ),
                       const Spacer(),
                     ],
                   ),
 
                   const SizedBox(height: 8),
 
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text('User Information', style: t.textTheme.bodyMedium),
-                  ),
+                  // Align(
+                  //   alignment: Alignment.centerLeft,
+                  //   child: Text('User Information', style: t.textTheme.bodyMedium),
+                  // ),
 
                   const SizedBox(height: 14),
 
