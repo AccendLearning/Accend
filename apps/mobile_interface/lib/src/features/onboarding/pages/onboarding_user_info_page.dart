@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../../../app/constants.dart';
+import '../../../common/services/api_client.dart';
+import '../../../common/services/auth_service.dart';
 import '../../../common/widgets/primary_button.dart';
 import '../controllers/onboarding_user_info_controller.dart';
 import '../widgets/onboarding_labeled_field.dart';
@@ -14,6 +17,9 @@ class OnboardingUserInfoPage extends StatefulWidget {
 
 class _OnboardingUserInfoPageState extends State<OnboardingUserInfoPage> {
   final _c = OnboardingUserInfoController();
+
+  final _auth = AuthService();
+  final _api = ApiClient();
 
   final _fullName = TextEditingController();
   final _username = TextEditingController();
@@ -32,6 +38,7 @@ class _OnboardingUserInfoPageState extends State<OnboardingUserInfoPage> {
     _username.dispose();
     _email.dispose();
     _password.dispose();
+    _api.dispose();
     super.dispose();
   }
 
@@ -51,11 +58,61 @@ class _OnboardingUserInfoPageState extends State<OnboardingUserInfoPage> {
     if (!_c.isValid) return;
 
     setState(() => _submitting = true);
+
     try {
-      await Future.delayed(const Duration(milliseconds: 600));
+      final username = _username.text.trim();
+      final email = _email.text.trim();
+      final password = _password.text;
+      final fullName = _fullName.text.trim();
+      final nativeLanguage = _nativeLanguage ?? '';
+
+      // 1) Username availability via gateway -> profile-service
+      final check = await _api.getJson(
+        '/profile/username-available',
+        query: {'username': username},
+      );
+
+      final available = check['available'] == true;
+      if (!available) {
+        setState(() {
+          _c.usernameErr = 'Username is taken';
+        });
+        return;
+      }
+
+      // 2) Supabase Auth signup (credentials stored by Supabase Auth)
+      await _auth.signUp(
+        email: email,
+        password: password,
+      );
+
+      final accessToken = _auth.accessToken;
+      if (accessToken == null) {
+        throw Exception('Missing access token after signup.');
+      }
+
+      // 3) Initialize profile row via gateway (JWT verified -> X-User-Id forwarded)
+      await _api.postJson(
+        '/profile/init',
+        accessToken: accessToken,
+        body: {
+          'username': username,
+          'full_name': fullName,
+          'native_language': nativeLanguage,
+        },
+      );
+
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/onboarding-goals');
+    } on ApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Continue (backend hookup next)')),
+        SnackBar(content: Text('Request failed: ${e.toString()}')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Signup failed: $e')),
       );
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -85,9 +142,7 @@ class _OnboardingUserInfoPageState extends State<OnboardingUserInfoPage> {
                     ],
                   ),
                   const SizedBox(height: 8),
-
                   const SizedBox(height: 14),
-
                   Align(
                     alignment: Alignment.centerLeft,
                     child: RichText(
@@ -113,9 +168,7 @@ class _OnboardingUserInfoPageState extends State<OnboardingUserInfoPage> {
                       style: t.textTheme.bodyMedium,
                     ),
                   ),
-
                   const SizedBox(height: 18),
-
                   Expanded(
                     child: SingleChildScrollView(
                       child: Column(
@@ -134,7 +187,6 @@ class _OnboardingUserInfoPageState extends State<OnboardingUserInfoPage> {
                             ),
                           ),
                           const SizedBox(height: 12),
-
                           OnboardingLabeledField(
                             label: 'Username',
                             child: TextField(
@@ -149,7 +201,6 @@ class _OnboardingUserInfoPageState extends State<OnboardingUserInfoPage> {
                             ),
                           ),
                           const SizedBox(height: 12),
-
                           OnboardingLabeledField(
                             label: 'Email Address',
                             child: TextField(
@@ -165,7 +216,6 @@ class _OnboardingUserInfoPageState extends State<OnboardingUserInfoPage> {
                             ),
                           ),
                           const SizedBox(height: 12),
-
                           OnboardingLabeledField(
                             label: 'Password',
                             rightLabel: '(At least 8 characters)',
@@ -187,7 +237,6 @@ class _OnboardingUserInfoPageState extends State<OnboardingUserInfoPage> {
                             ),
                           ),
                           const SizedBox(height: 12),
-
                           OnboardingLabeledField(
                             label: 'Native Language',
                             child: Column(
@@ -214,9 +263,7 @@ class _OnboardingUserInfoPageState extends State<OnboardingUserInfoPage> {
                               ],
                             ),
                           ),
-
                           const SizedBox(height: 18),
-
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -237,13 +284,11 @@ class _OnboardingUserInfoPageState extends State<OnboardingUserInfoPage> {
                               ),
                             ],
                           ),
-
                           const SizedBox(height: 14),
-
                           PrimaryButton(
                             text: 'Continue',
                             loading: _submitting,
-                            onPressed: _onContinue,
+                            onPressed: _submitting ? null : _onContinue,
                           ),
                         ],
                       ),
