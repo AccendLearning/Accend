@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../features/onboarding/pages/onboarding_user_info_page.dart';
+import '../features/courses/pages/courses_list_page.dart';
 
 class AppRoutes {
   static const onboardingUserInfo = '/onboarding/user-info';
@@ -11,5 +12,6 @@ class AppRoutes {
 
   static Map<String, WidgetBuilder> get table => {
         onboardingUserInfo: (_) => const OnboardingUserInfoPage(),
+        courses: (_) => const CoursesListPage(),
       };
 }
