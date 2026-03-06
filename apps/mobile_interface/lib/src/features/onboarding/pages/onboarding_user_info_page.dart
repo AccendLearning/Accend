@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../../../app/constants.dart';
+import '../../../common/services/api_client.dart';
+import '../../../common/services/auth_service.dart';
 import '../../../common/widgets/primary_button.dart';
 import '../controllers/onboarding_user_info_controller.dart';
 import '../widgets/onboarding_labeled_field.dart';
@@ -14,6 +17,9 @@ class OnboardingUserInfoPage extends StatefulWidget {
 
 class _OnboardingUserInfoPageState extends State<OnboardingUserInfoPage> {
   final _c = OnboardingUserInfoController();
+
+  final _auth = AuthService();
+  final _api = ApiClient();
 
   final _fullName = TextEditingController();
   final _username = TextEditingController();
@@ -32,14 +38,17 @@ class _OnboardingUserInfoPageState extends State<OnboardingUserInfoPage> {
     _username.dispose();
     _email.dispose();
     _password.dispose();
+    _api.dispose();
     super.dispose();
   }
 
   void _validate() {
     _c.validate(
+      fullName: _fullName.text,
       username: _username.text,
       email: _email.text,
       password: _password.text,
+      selectedLanguage: _nativeLanguage,
     );
     setState(() {});
   }
@@ -49,11 +58,61 @@ class _OnboardingUserInfoPageState extends State<OnboardingUserInfoPage> {
     if (!_c.isValid) return;
 
     setState(() => _submitting = true);
+
     try {
-      await Future.delayed(const Duration(milliseconds: 600));
+      final username = _username.text.trim();
+      final email = _email.text.trim();
+      final password = _password.text;
+      final fullName = _fullName.text.trim();
+      final nativeLanguage = _nativeLanguage ?? '';
+
+      // 1) Username availability via gateway -> profile-service
+      final check = await _api.getJson(
+        '/profile/username-available',
+        query: {'username': username},
+      );
+
+      final available = check['available'] == true;
+      if (!available) {
+        setState(() {
+          _c.usernameErr = 'Username is taken';
+        });
+        return;
+      }
+
+      // 2) Supabase Auth signup (credentials stored by Supabase Auth)
+      await _auth.signUp(
+        email: email,
+        password: password,
+      );
+
+      final accessToken = _auth.accessToken;
+      if (accessToken == null) {
+        throw Exception('Missing access token after signup.');
+      }
+
+      // 3) Initialize profile row via gateway (JWT verified -> X-User-Id forwarded)
+      await _api.postJson(
+        '/profile/init',
+        accessToken: accessToken,
+        body: {
+          'username': username,
+          'full_name': fullName,
+          'native_language': nativeLanguage,
+        },
+      );
+
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/onboarding-goals');
+    } on ApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Continue (backend hookup next)')),
+        SnackBar(content: Text('Request failed: ${e.toString()}')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Signup failed: $e')),
       );
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -79,35 +138,11 @@ class _OnboardingUserInfoPageState extends State<OnboardingUserInfoPage> {
                         onPressed: () => Navigator.maybePop(context),
                         icon: const Icon(Icons.arrow_back_ios_new_rounded),
                       ),
-                      const SizedBox(width: 8),
-                      // Container(
-                      //   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      //   decoration: BoxDecoration(
-                      //     color: AppColors.surface,
-                      //     borderRadius: BorderRadius.circular(10),
-                      //     border: Border.all(color: AppColors.border),
-                      //   ),
-                      //   // child: Text(
-                      //   //   'Onboarding',
-                      //   //   style: t.textTheme.bodyMedium?.copyWith(
-                      //   //     color: AppColors.textPrimary,
-                      //   //     fontWeight: FontWeight.w700,
-                      //   //   ),
-                      //   // ),
-                      // ),
                       const Spacer(),
                     ],
                   ),
-
                   const SizedBox(height: 8),
-
-                  // Align(
-                  //   alignment: Alignment.centerLeft,
-                  //   child: Text('User Information', style: t.textTheme.bodyMedium),
-                  // ),
-
                   const SizedBox(height: 14),
-
                   Align(
                     alignment: Alignment.centerLeft,
                     child: RichText(
@@ -128,11 +163,12 @@ class _OnboardingUserInfoPageState extends State<OnboardingUserInfoPage> {
                   const SizedBox(height: 6),
                   Align(
                     alignment: Alignment.centerLeft,
-                    child: Text('Begin your journey to fluency', style: t.textTheme.bodyMedium),
+                    child: Text(
+                      'Begin your journey to fluency',
+                      style: t.textTheme.bodyMedium,
+                    ),
                   ),
-
                   const SizedBox(height: 18),
-
                   Expanded(
                     child: SingleChildScrollView(
                       child: Column(
@@ -141,15 +177,18 @@ class _OnboardingUserInfoPageState extends State<OnboardingUserInfoPage> {
                             label: 'Full Name',
                             child: TextField(
                               controller: _fullName,
-                              decoration: const InputDecoration(hintText: 'e.g. Minh Tran'),
+                              onChanged: (_) {
+                                if (_c.fullNameErr != null) _validate();
+                              },
+                              decoration: InputDecoration(
+                                hintText: 'e.g. Minh Tran',
+                                errorText: _c.fullNameErr,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 12),
-
                           OnboardingLabeledField(
                             label: 'Username',
-                            rightLabel: _c.usernameErr != null ? 'Username is taken' : null,
-                            rightLabelColor: AppColors.failure,
                             child: TextField(
                               controller: _username,
                               onChanged: (_) {
@@ -162,11 +201,8 @@ class _OnboardingUserInfoPageState extends State<OnboardingUserInfoPage> {
                             ),
                           ),
                           const SizedBox(height: 12),
-
                           OnboardingLabeledField(
                             label: 'Email Address',
-                            rightLabel: _c.emailErr != null ? 'Email is taken' : null,
-                            rightLabelColor: AppColors.failure,
                             child: TextField(
                               controller: _email,
                               keyboardType: TextInputType.emailAddress,
@@ -180,7 +216,6 @@ class _OnboardingUserInfoPageState extends State<OnboardingUserInfoPage> {
                             ),
                           ),
                           const SizedBox(height: 12),
-
                           OnboardingLabeledField(
                             label: 'Password',
                             rightLabel: '(At least 8 characters)',
@@ -202,18 +237,33 @@ class _OnboardingUserInfoPageState extends State<OnboardingUserInfoPage> {
                             ),
                           ),
                           const SizedBox(height: 12),
-
                           OnboardingLabeledField(
                             label: 'Native Language',
-                            child: OnboardingLanguageDropdown(
-                              value: _nativeLanguage,
-                              options: _languages,
-                              onChanged: (v) => setState(() => _nativeLanguage = v),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                OnboardingLanguageDropdown(
+                                  value: _nativeLanguage,
+                                  options: _languages,
+                                  onChanged: (v) {
+                                    setState(() => _nativeLanguage = v);
+                                    if (_c.languageErr != null) _validate();
+                                  },
+                                ),
+                                if (_c.languageErr != null) ...[
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    _c.languageErr!,
+                                    style: t.textTheme.bodySmall?.copyWith(
+                                      color: AppColors.failure,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
-
                           const SizedBox(height: 18),
-
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -234,13 +284,11 @@ class _OnboardingUserInfoPageState extends State<OnboardingUserInfoPage> {
                               ),
                             ],
                           ),
-
                           const SizedBox(height: 14),
-
                           PrimaryButton(
                             text: 'Continue',
                             loading: _submitting,
-                            onPressed: _onContinue,
+                            onPressed: _submitting ? null : _onContinue,
                           ),
                         ],
                       ),
