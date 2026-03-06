@@ -21,11 +21,24 @@ from app.auth import verify_supabase_jwt
 from httpx import HTTPStatusError
 from app.supabase_client import supabase_select_one
 
+from fastapi.middleware.cors import CORSMiddleware
+
 
 # Create FastAPI app
 app = FastAPI(title="api-gateway")
 
+# Allow cross-origin requests from your web/dev origins.
+# settings.ALLOWED_ORIGINS should be a list of origins, e.g. ["http://localhost:5173"]
+# If not set, we allow a sensible dev list (localhost + 127.0.0.1) — change this for production.
 
+# DEV CORS: allow ANY localhost/127.0.0.1 port (flutter web port changes)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=r"^http://(localhost|127\.0\.0\.1)(:\d+)?$",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # -----------------------------------
 # Health Check
 # -----------------------------------

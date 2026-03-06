@@ -14,7 +14,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    # Load from .env and ignore unknown keys
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     # Supabase credentials
@@ -30,5 +29,4 @@ class Settings(BaseSettings):
     USER_PROFILE_SERVICE_URL: str
 
 
-# Singleton settings object
 settings = Settings()
