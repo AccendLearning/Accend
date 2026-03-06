@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
       title: AppStrings.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark(),
-      initialRoute: AppRoutes.onboardingUserInfo,
+      initialRoute: AppRoutes.login,
       routes: AppRoutes.table,
     );
   }
