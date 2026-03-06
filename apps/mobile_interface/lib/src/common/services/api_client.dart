@@ -107,6 +107,36 @@ class ApiClient {
     );
   }
 
+  Future<List<dynamic>> getList(
+    String path, {
+    Map<String, String>? query,
+    String? accessToken,
+  }) async {
+    final res = await _client.get(
+      _uri(path, query),
+      headers: _headers(accessToken: accessToken),
+    );
+
+    if (res.statusCode >= 400) {
+      throw ApiException(
+        statusCode: res.statusCode,
+        body: res.body,
+      );
+    }
+
+    if (res.body.isEmpty) {
+      throw ApiException(statusCode: 502, body: 'Empty response body');
+    }
+
+    final decoded = jsonDecode(res.body);
+    if (decoded is List) return decoded;
+
+    throw ApiException(
+      statusCode: 502,
+      body: 'Expected JSON list but got: ${res.body}',
+    );
+  }
+
   void dispose() => _client.close();
 }
 
