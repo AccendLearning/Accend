@@ -77,7 +77,7 @@ def run_pronunciation_assessment(audio_path: Path, reference_text: str) -> dict:
         reference_text=reference_text.strip(),
         grading_system=speechsdk.PronunciationAssessmentGradingSystem.HundredMark,
         granularity=speechsdk.PronunciationAssessmentGranularity.Phoneme,
-        enable_miscue=False,
+        enable_miscue=True,
     )
     pronunciation_config.apply_to(speech_recognizer)
 
