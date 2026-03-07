@@ -68,40 +68,40 @@ class _OnboardingUserInfoPageState extends State<OnboardingUserInfoPage> {
       final nativeLanguage = _nativeLanguage ?? '';
 
       // COMMENTED OUT HERE!!!: Username availability check
-      // final check = await _api.getJson(
-      //   '/profile/username-available',
-      //   query: {'username': username},
-      // );
-      //
-      // final available = check['available'] == true;
-      // if (!available) {
-      //   setState(() {
-      //     _c.usernameErr = 'Username is taken';
-      //   });
-      //   return;
-      // }
+      final check = await _api.getJson(
+        '/profile/username-available',
+        query: {'username': username},
+      );
+      
+      final available = check['available'] == true;
+      if (!available) {
+        setState(() {
+          _c.usernameErr = 'Username is taken';
+        });
+        return;
+      }
 
       // COMMENTED OUT: Supabase Auth signup
-      // await _auth.signUp(
-      //   email: email,
-      //   password: password,
-      // );
-      //
-      // final accessToken = _auth.accessToken;
-      // if (accessToken == null) {
-      //   throw Exception('Missing access token after signup.');
-      // }
+      await _auth.signUp(
+        email: email,
+        password: password,
+      );
+      
+      final accessToken = _auth.accessToken;
+      if (accessToken == null) {
+        throw Exception('Missing access token after signup.');
+      }
 
       // COMMENTED OUT: Initialize profile
-      // await _api.postJson(
-      //   '/profile/init',
-      //   accessToken: accessToken,
-      //   body: {
-      //     'username': username,
-      //     'full_name': fullName,
-      //     'native_language': nativeLanguage,
-      //   },
-      // );
+      await _api.postJson(
+        '/profile/init',
+        accessToken: accessToken,
+        body: {
+          'username': username,
+          'full_name': fullName,
+          'native_language': nativeLanguage,
+        },
+      );
 
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, AppRoutes.onboardingSkillAssess);

@@ -6,6 +6,8 @@ import '../controllers/courses_controller.dart';
 import '../models/course.dart';
 import '../widgets/course_card.dart';
 
+import '../../../app/routes.dart';
+
 class CoursesListPage extends StatefulWidget {
   const CoursesListPage({super.key});
 
@@ -34,7 +36,7 @@ class _CoursesListPageState extends State<CoursesListPage> {
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => Navigator.of(context).maybePop(),
+          onPressed: () => Navigator.of(context).pushReplacementNamed(AppRoutes.login),
         ),
         title: Text(
           "Courses",
