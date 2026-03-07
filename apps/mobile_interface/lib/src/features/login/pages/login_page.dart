@@ -44,16 +44,40 @@ class LoginPage extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 48),
+
+                  // Main onboarding button
                   SizedBox(
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: () => Navigator.pushNamed(context, AppRoutes.onboardingUserInfo),
+                      onPressed: () => Navigator.pushNamed(
+                        context,
+                        AppRoutes.onboardingUserInfo,
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.accent,
                         foregroundColor: AppColors.textPrimary,
                       ),
                       child: const Text('Start Onboarding'),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // TEMP DEBUG BUTTON (remove later)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pushNamed(
+                        context,
+                        AppRoutes.courses,
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppColors.accent),
+                        foregroundColor: AppColors.accent,
+                      ),
+                      child: const Text('Go to Courses (Debug)'),
                     ),
                   ),
                 ],
