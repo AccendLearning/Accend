@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../app/constants.dart';
-import '../../../common/widgets/primary_button.dart';
 import '../controllers/group_session_lobby_code_controller.dart';
 import '../widgets/widget1.dart';
 import '../../../app/routes.dart' as routes;
@@ -103,8 +102,36 @@ class _GroupSessionSelectPageState extends State<GroupSessionPrivateSelectPage> 
                     title: "Create Lobby", 
                     subtitle: "Create or join with a code", 
                     icon: Icons.add_circle_outline_rounded, 
-                    onTap: () {print('Create Private Lobby Pressed');},
-                    // onTap: () {Navigator.pushNamed(context, routes.AppRoutes.groupSessionPrivateSelect);} // leo TODO Need to make it actually do something later
+                    onTap: () {Navigator.pushNamed(context, routes.AppRoutes.groupSessionPrivateCreate);} // leo TODO Need to make it actually do something later
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        height: 2,
+                        width: 100,
+                        color: Colors.white,
+                      ),
+
+                      SizedBox(width: 10),
+                      Text(
+                        'Or', 
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20
+                        ),
+                      ),
+                      SizedBox(width: 10),
+
+                      Container(
+                        height: 2,
+                        width: 100,
+                        color: Colors.white,
+                      ),
+                    ],
                   ),
 
                   const SizedBox(height: 18),
@@ -131,8 +158,7 @@ class _GroupSessionSelectPageState extends State<GroupSessionPrivateSelectPage> 
                     title: "Join Lobby", 
                     subtitle: "Create or join with a code", 
                     icon: Icons.arrow_circle_right_outlined, 
-                    // onTap: () {Navigator.pushNamed(context, routes.AppRoutes.groupSessionPrivateSelect);} // leo TODO Need to make it actually do something later
-                    onTap: () {print('Join Private Lobby Pressed');},
+                    onTap: () {Navigator.pushNamed(context, routes.AppRoutes.groupSessionPrivateJoin);} // leo TODO Need to make it actually do something later
                   ),
 
                   Spacer(),

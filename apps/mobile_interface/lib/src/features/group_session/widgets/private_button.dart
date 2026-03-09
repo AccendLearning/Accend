@@ -31,13 +31,13 @@ class PrivateButton extends StatelessWidget {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
-          // boxShadow: [
-          //   BoxShadow(
-          //     color: Color(0xFF8A3FFC).withValues(alpha: 0.5),
-          //     blurRadius: 20,
-          //     spreadRadius: 2,
-          //   )
-          // ],
+          boxShadow: [
+            BoxShadow(
+              color: Color(0xFF8A3FFC).withValues(alpha: 0.5),
+              blurRadius: 20,
+              spreadRadius: 2,
+            )
+          ],
         ),
         child: Row(
           children: [

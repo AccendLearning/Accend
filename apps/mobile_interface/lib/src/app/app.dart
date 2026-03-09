@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_interface/src/features/group_session/pages/group_session_select_page.dart';
-import 'package:mobile_interface/src/features/group_session/pages/group_session_private_session_page.dart';
+import 'package:mobile_interface/src/features/group_session/pages/group_session_private_select_page.dart';
 import 'constants.dart';
 import 'routes.dart';
 import 'theme.dart';
