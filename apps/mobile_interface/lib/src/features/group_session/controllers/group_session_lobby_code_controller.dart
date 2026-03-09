@@ -9,6 +9,7 @@ class OnboardingUserInfoController {
     lobbyCodeErr = code.isEmpty ? 'Required' : null;
 
     // Most likely need checks for length of code, as well as making sure it is all numbers
+    // for now it is just making sure it isn't empty
     if (code.isEmpty) {
       lobbyCodeErr = 'Required';
     } else {
@@ -16,5 +17,5 @@ class OnboardingUserInfoController {
     }
   }
 
-  bool get isValid => usernameErr == null && emailErr == null && passwordErr == null;
+  bool get isValid => lobbyCodeErr == null;
 }

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../app/constants.dart';
-import '../../../common/widgets/primary_button.dart';
 import '../controllers/group_session_lobby_code_controller.dart';
-import '../widgets/widget1.dart';
+import '../widgets/public_button.dart' as public_button;
+import '../widgets/private_button.dart' as private_button;
+import '../../../common/widgets/bottom_nav_bar.dart' as bot_nav_bar;
 
 class GroupSessionSelectPage extends StatefulWidget {
   const GroupSessionSelectPage({super.key});
@@ -14,26 +15,21 @@ class GroupSessionSelectPage extends StatefulWidget {
 class _GroupSessionSelectPageState extends State<GroupSessionSelectPage> {
   final _c = OnboardingUserInfoController();
 
-  final _fullName = TextEditingController();
-  final _username = TextEditingController();
-  final _email = TextEditingController();
-  final _password = TextEditingController();
+  final _lobbyCode = TextEditingController();
 
-  bool _hidePassword = true;
   bool _submitting = false;
+
+  int _selectedIndex = 1;
 
   @override
   void dispose() {
-    _fullName.dispose();
-    _username.dispose();
-    _email.dispose();
-    _password.dispose();
+    _lobbyCode.dispose();
     super.dispose();
   }
 
   void _validate() {
     _c.validate(
-      username: _username.text
+      lobbyCode: _lobbyCode.text
     );
     setState(() {});
   }
@@ -67,148 +63,61 @@ class _GroupSessionSelectPageState extends State<GroupSessionSelectPage> {
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
               child: Column(
                 children: [
-                  Row(
+                  Stack(
                     children: [
                       IconButton(
                         onPressed: () => Navigator.maybePop(context),
                         icon: const Icon(Icons.arrow_back_ios_new_rounded),
                       ),
-                      const SizedBox(width: 8),
-                      const Spacer(),
+
+                      Align(
+                        alignment: Alignment.center,
+                        child: Padding(
+                          padding: EdgeInsets.only(top:8),
+                          child: RichText(
+                            text: TextSpan(
+                              style: t.textTheme.headlineMedium,
+                              children: [
+                                const TextSpan(text: 'Group Session '),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
 
-                  const SizedBox(height: 8),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
 
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: RichText(
-                      text: TextSpan(
-                        style: t.textTheme.headlineMedium,
-                        children: [
-                          const TextSpan(text: 'WAAAAAAAAAH '),
-                          TextSpan(
-                            text: 'Ascension',
-                            style: t.textTheme.headlineMedium?.copyWith(
-                              color: AppColors.accent,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text('Begin your journey to fluency', style: t.textTheme.bodyMedium),
+                  Divider(
+                    color: AppColors.border,
+                    thickness: 5,
+                    indent: 0,
                   ),
 
-                  const SizedBox(height: 18),
+                  Spacer(),
 
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          OnboardingLabeledField(
-                            label: 'Full Name',
-                            child: TextField(
-                              controller: _fullName,
-                              decoration: const InputDecoration(hintText: 'e.g. Minh Tran'),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
+                  public_button.PublicButton(
+                    title: "Public Room", 
+                    subtitle: "Automatically match-made rooms", 
+                    icon: Icons.public, 
+                    onTap: () {print("Public room Pressed");} // leo TODO Need to make it actually do something later
+                  ),
+                  
+                  const SizedBox(height: 60),
+                  
+                  private_button.PrivateButton(
+                    title: "Private Room", 
+                    subtitle: "Create or join with a code", 
+                    icon: Icons.lock, 
+                    onTap: () {print("Private room Pressed");} // leo TODO Need to make it actually do something later
+                  ),
 
-                          OnboardingLabeledField(
-                            label: 'Username',
-                            rightLabel: _c.usernameErr != null ? 'Username is taken' : null,
-                            rightLabelColor: AppColors.failure,
-                            child: TextField(
-                              controller: _username,
-                              onChanged: (_) {
-                                if (_c.usernameErr != null) _validate();
-                              },
-                              decoration: InputDecoration(
-                                hintText: '@OHHOHOHOHOHOHOH',
-                                errorText: _c.usernameErr,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-
-                          OnboardingLabeledField(
-                            label: 'Email Address',
-                            rightLabel: _c.emailErr != null ? 'Email is taken' : null,
-                            rightLabelColor: AppColors.failure,
-                            child: TextField(
-                              controller: _email,
-                              keyboardType: TextInputType.emailAddress,
-                              onChanged: (_) {
-                                if (_c.emailErr != null) _validate();
-                              },
-                              decoration: InputDecoration(
-                                hintText: 'minh@example.com',
-                                errorText: _c.emailErr,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-
-                          OnboardingLabeledField(
-                            label: 'Password',
-                            rightLabel: '(At least 8 characters)',
-                            rightLabelColor: AppColors.textSecondary,
-                            child: TextField(
-                              controller: _password,
-                              obscureText: _hidePassword,
-                              onChanged: (_) {
-                                if (_c.passwordErr != null) _validate();
-                              },
-                              decoration: InputDecoration(
-                                hintText: '••••••••••••',
-                                errorText: _c.passwordErr,
-                                suffixIcon: IconButton(
-                                  onPressed: () => setState(() => _hidePassword = !_hidePassword),
-                                  icon: Icon(_hidePassword ? Icons.visibility_off : Icons.visibility),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-
-                          const SizedBox(height: 18),
-
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text('Already have an account? ', style: t.textTheme.bodyMedium),
-                              GestureDetector(
-                                onTap: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Login page coming next')),
-                                  );
-                                },
-                                child: Text(
-                                  'Log in',
-                                  style: t.textTheme.bodyMedium?.copyWith(
-                                    color: AppColors.accent,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 14),
-
-                          PrimaryButton(
-                            text: 'Continue',
-                            loading: _submitting,
-                            onPressed: _onContinue,
-                          ),
-                        ],
-                      ),
-                    ),
+                  Spacer(),
+                  
+                  bot_nav_bar.BottomNavBar(
+                    selectedIndex: _selectedIndex,
+                    onDestinationSelected: (index) => setState(() => _selectedIndex = index),
                   ),
                 ],
               ),
