@@ -65,7 +65,7 @@ class SupabaseLessonRepo:
         return out
 
     def create_lesson_with_items(self, course_id: UUID, data: LessonCreate) -> LessonWithItemsOut:
-        # 1) Create lesson row
+        # Create lesson row
         lesson_row = rest_post(
             table="lessons",
             payload={
@@ -78,21 +78,25 @@ class SupabaseLessonRepo:
         )
         lesson = LessonOut.model_validate(lesson_row)
 
-        # 2) Create items rows (one-by-one using rest_post for Sprint 1 simplicity)
-        created_items: list[LessonItemOut] = []
-        for idx, item in enumerate(data.items, start=1):
-            item_row = rest_post(
-                table="lesson_items",
-                payload={
-                    "lesson_id": str(lesson.id),
-                    "position": idx,
-                    "text": item.text,
-                    "ipa": item.ipa,
-                    "hint": item.hint,
-                },
-                select=ITEM_SELECT,
-            )
-            created_items.append(LessonItemOut.model_validate(item_row))
+        # Bulk insert items
+        items_payload = [
+            {
+                "lesson_id": str(lesson.id),
+                "position": idx,
+                "text": item.text,
+                "ipa": item.ipa,
+                "hint": item.hint,
+            }
+            for idx, item in enumerate(data.items, start=1)
+        ]
+
+        item_rows = rest_post(
+            table="lesson_items",
+            payload=items_payload,   # <- bulk
+            select=ITEM_SELECT,
+        )
+
+        created_items = [LessonItemOut.model_validate(r) for r in item_rows]
 
         return LessonWithItemsOut(**lesson.model_dump(), items=created_items)
 
