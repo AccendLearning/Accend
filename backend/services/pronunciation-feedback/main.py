@@ -156,7 +156,7 @@ def run_pronunciation_assessment(audio_path: Path, reference_text: str) -> dict:
         granularity=speechsdk.PronunciationAssessmentGranularity.Phoneme,
         enable_miscue=True,
     )
-    pronunciation_config.phoneme_alphabet = "IPA"
+    # pronunciation_config.phoneme_alphabet = "IPA"
     pronunciation_config.apply_to(speech_recognizer)
 
     result = speech_recognizer.recognize_once()
