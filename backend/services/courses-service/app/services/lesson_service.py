@@ -4,7 +4,7 @@ lesson_service.py
 
 from uuid import UUID
 from app.repositories.lesson_repo import LessonRepo
-from app.schemas.lesson_schema import LessonCreate, LessonWithItemsOut, LessonOut
+from app.schemas.lesson_schema import LessonCreate, LessonWithItemsOut, LessonOut, CurriculumCreate
 
 
 class LessonService:
@@ -19,3 +19,6 @@ class LessonService:
 
     def complete_lesson_and_update_course(self, course_id: UUID, lesson_id: UUID) -> LessonOut:
         return self.repo.complete_lesson_and_update_course(course_id, lesson_id)
+
+    def create_curriculum(self, course_id: UUID, data: CurriculumCreate) -> list[LessonWithItemsOut]:
+        return self.repo.create_curriculum(course_id, data)

@@ -26,11 +26,3 @@ def get_course_service() -> CourseService:
 
 def get_lesson_service() -> LessonService:
     return LessonService(repo=SupabaseLessonRepo())
-
-
-def get_course_service() -> CourseService:
-    """FastAPI dependency that returns a ready-to-use CourseService."""
-    return CourseService(repo=SupabaseCourseRepo())
-
-def get_lesson_service() -> LessonService:
-    return LessonService(repo=SupabaseLessonRepo())

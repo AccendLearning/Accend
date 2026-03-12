@@ -23,9 +23,6 @@ class LessonCreate(BaseModel):
     Create a lesson with items in one call (used by AI service).
     """
     title: str = Field(min_length=1, max_length=200)
-    position: int = Field(ge=1)
-
-    # Items are ordered as provided; we will assign position 1..N
     items: list[LessonItemCreate] = Field(min_length=1, max_length=200)
 
 
@@ -50,3 +47,7 @@ class LessonOut(BaseModel):
 
 class LessonWithItemsOut(LessonOut):
     items: list[LessonItemOut] = []
+
+class CurriculumCreate(BaseModel):
+    # lessons come in order; server assigns positions 1..N
+    lessons: list[LessonCreate] = Field(min_length=1, max_length=100)

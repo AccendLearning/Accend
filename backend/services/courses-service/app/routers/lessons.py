@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from uuid import UUID
 
 from app.dependencies import get_lesson_service
-from app.schemas.lesson_schema import LessonCreate, LessonWithItemsOut, LessonOut
+from app.schemas.lesson_schema import LessonCreate, LessonWithItemsOut, LessonOut, CurriculumCreate
 from app.services.lesson_service import LessonService
 
 
@@ -54,3 +54,13 @@ def complete_lesson(
 ):
     _get_user_id(x_user_id)
     return svc.complete_lesson_and_update_course(course_id, lesson_id)
+
+@router.post("/courses/{course_id}/curriculum", response_model=list[LessonWithItemsOut])
+def create_curriculum(
+    course_id: UUID,
+    body: CurriculumCreate,
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+    svc: LessonService = Depends(get_lesson_service),
+):
+    _get_user_id(x_user_id)
+    return svc.create_curriculum(course_id, body)
