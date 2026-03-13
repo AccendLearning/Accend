@@ -5,6 +5,7 @@ import '../../../app/constants.dart';
 import '../controllers/courses_controller.dart';
 import '../models/course.dart';
 import '../widgets/course_card.dart';
+import '../widgets/generate_course_popup.dart';
 
 import '../../../app/routes.dart';
 
@@ -48,7 +49,7 @@ class _CoursesListPageState extends State<CoursesListPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.add_circle, color: AppColors.action, size: 28),
-            onPressed: () => _showCreateCourseStub(context),
+            onPressed: () => _openGenerateCoursePopup(context),
           ),
           const SizedBox(width: 6),
         ],
@@ -74,7 +75,7 @@ class _CoursesListPageState extends State<CoursesListPage> {
 
               if (ctrl.courses.isEmpty) {
                 return _EmptyState(
-                  onCreate: () => _showCreateCourseStub(context),
+                  onCreate: () => _openGenerateCoursePopup(context),
                 );
               }
 
@@ -92,33 +93,17 @@ class _CoursesListPageState extends State<CoursesListPage> {
     );
   }
 
-  void _showCreateCourseStub(BuildContext context) {
-    showDialog(
+  Future<void> _openGenerateCoursePopup(BuildContext context) async {
+    final ctrl = context.read<CoursesController>();
+
+    await showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text(
-          "Create Course",
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w800,
-              ),
-        ),
-        content: Text(
-          "This will become the Story 19 prompt popup (and later AI generation).",
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textSecondary,
-              ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              "Close",
-              style: TextStyle(color: AppColors.accent),
-            ),
-          ),
-        ],
+      barrierDismissible: true,
+      builder: (_) => GenerateCoursePopup(
+        onGenerate: (prompt) async {
+          final ok = await ctrl.generateCourse(prompt);
+          return ok;
+        },
       ),
     );
   }
