@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../app/constants.dart';
+import '../../../app/routes.dart';
+import '../../../common/widgets/bottom_nav_bar.dart';
+
 import '../controllers/courses_controller.dart';
 import '../models/course.dart';
 import '../widgets/course_card.dart';
 import '../widgets/generate_course_popup.dart';
-
-import '../../../app/routes.dart';
 
 class CoursesListPage extends StatefulWidget {
   const CoursesListPage({super.key});
@@ -25,6 +26,20 @@ class _CoursesListPageState extends State<CoursesListPage> {
     });
   }
 
+  void _onNavTap(int index) {
+    switch (index) {
+      case 0:
+        Navigator.of(context).pushReplacementNamed(AppRoutes.social);
+        break;
+      case 1:
+        Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+        break;
+      case 2:
+        Navigator.of(context).pushReplacementNamed(AppRoutes.profile);
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final ctrl = context.watch<CoursesController>();
@@ -37,7 +52,8 @@ class _CoursesListPageState extends State<CoursesListPage> {
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => Navigator.of(context).pushReplacementNamed(AppRoutes.login),
+          onPressed: () =>
+              Navigator.of(context).pushReplacementNamed(AppRoutes.login),
         ),
         title: Text(
           "Courses",
@@ -48,7 +64,11 @@ class _CoursesListPageState extends State<CoursesListPage> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_circle, color: AppColors.action, size: 28),
+            icon: const Icon(
+              Icons.add_circle,
+              color: AppColors.action,
+              size: 28,
+            ),
             onPressed: () => _openGenerateCoursePopup(context),
           ),
           const SizedBox(width: 6),
@@ -56,9 +76,11 @@ class _CoursesListPageState extends State<CoursesListPage> {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.sm,
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.sm,
+            AppSpacing.md,
+            0,
           ),
           child: Builder(
             builder: (_) {
@@ -89,6 +111,10 @@ class _CoursesListPageState extends State<CoursesListPage> {
             },
           ),
         ),
+      ),
+      bottomNavigationBar: BottomNavBar(
+        selectedIndex: null,
+        onDestinationSelected: _onNavTap,
       ),
     );
   }
@@ -121,12 +147,13 @@ class _CoursesGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
       itemCount: courses.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: AppSpacing.md,
         mainAxisSpacing: AppSpacing.md,
-        childAspectRatio: 0.74, // closer to figma proportions
+        childAspectRatio: 0.74,
       ),
       itemBuilder: (context, i) {
         final course = courses[i];
@@ -151,7 +178,11 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.school_outlined, size: 44, color: AppColors.textSecondary),
+            const Icon(
+              Icons.school_outlined,
+              size: 44,
+              color: AppColors.textSecondary,
+            ),
             const SizedBox(height: AppSpacing.sm),
             Text(
               "No courses yet",
