@@ -142,6 +142,62 @@ shared/ auth/ http/ logging.py
 
 ------------------------------------------------------------------------
 
+## Where to put credentials
+
+Put all secrets in **one file**: `backend/.env`.
+
+1. Copy the example:  
+   `cp .env.example .env`
+2. Edit `backend/.env` and set your real values (Supabase and Azure Speech).
+3. Never commit `.env` (it is in `.gitignore`).
+
+When you run `docker compose up` from `backend/`, Compose passes this `.env` to every service (api-gateway, pronunciation-feedback, etc.), so one file is enough.
+
+------------------------------------------------------------------------
+
+## Pronunciation Feedback microservice
+
+### What it does
+
+`pronunciation-feedback` accepts a WAV upload (max 10 seconds) + `reference_text`, calls Azure Speech Pronunciation Assessment (`en-US`, scripted), and returns a compact JSON payload with:
+
+- `summary`: overall scores
+- `words[]`: per-word accuracy + per-phoneme accuracy
+
+### How the mobile app should call it (through the Gateway)
+
+The Flutter app should call the Gateway endpoint (not the service directly):
+
+- **POST** `http://localhost:8080/pronunciation/assess`
+  - Multipart form fields:
+    - `audio`: WAV file (filename must end with `.wav`)
+    - `reference_text`: the ground truth text the learner should say
+
+The gateway proxies this to `pronunciation-feedback`’s internal `POST /assess`.
+
+### Auth behavior (dev vs prod)
+
+The Gateway route validates the Supabase JWT by default *unless* `ALLOW_ANON_PRONUNCIATION_ASSESS` is enabled (intended for local/dev).
+
+- **ALLOW_ANON_PRONUNCIATION_ASSESS**: set to `true` to allow calling `POST /pronunciation/assess` without a JWT (local/dev only)
+
+### Required environment variables (Azure Speech)
+
+Add these to `backend/.env`:
+
+- `AZURE_SPEECH_KEY`
+- `AZURE_SPEECH_REGION` (e.g. `eastus`)
+
+### Quick test (end-to-end through Gateway)
+
+With the backend stack running (`docker compose up --build` from `backend/`):
+
+```bash
+curl -X POST "http://localhost:8080/pronunciation/assess" \
+  -F "audio=@path/to/audio.wav" \
+  -F "reference_text=Hello world"
+```
+
 ## Environment Rules
 
 -   .env files are local only
@@ -158,3 +214,61 @@ shared/ auth/ http/ logging.py
 -   Supports one-call-per-screen preload pattern
 -   Easy migration to multi-DB later
 
+### Example
+```
+ACCEND/
+├── apps/
+│   └── mobile_interface/
+│
+├── backend/
+│   ├── services/
+│   │   ├── api-gateway/
+│   │   ├── courses-service/
+│   │   │   ├── app/
+│   │   │   │   ├── main.py
+│   │   │   │   ├── config.py
+│   │   │   │   ├── dependencies.py
+│   │   │   │
+│   │   │   │   ├── routers/
+│   │   │   │   │   └── courses.py
+│   │   │   │
+│   │   │   │   ├── schemas/
+│   │   │   │   │   ├── course_schema.py
+│   │   │   │   │   └── lesson_schema.py
+│   │   │   │
+│   │   │   │   ├── services/
+│   │   │   │   │   └── course_service.py
+│   │   │   │
+│   │   │   │   ├── repositories/
+│   │   │   │   │   ├── course_repo.py              # interface/contract
+│   │   │   │   │   └── supabase_course_repo.py     # router → service → repository → supabase
+│   │   │   │
+│   │   │   │   ├── clients/
+│   │   │   │   │   └── supabase.py
+│   │   │   │
+│   │   │   │   └── utils/
+│   │   │   │       └── errors.py
+│   │   │   ├── tests/
+│   │   │   ├── Dockerfile
+│   │   │   └── requirements.txt
+│   │   ├── ai-service/
+│   │   └── sessions-service/
+│   │
+│   ├── shared/
+│   │   ├── auth/
+│   │   │   └── jwt.py
+│   │   ├── http/
+│   │   │   └── client.py             # shared http helpers
+│   │   └── logging.py
+│   │
+│   └── docker-compose.yml
+│
+├── contracts/
+│   └── openapi/
+│
+├── infra/
+│   ├── supabase/
+│   └── scripts/
+│
+└── README.md
+```
