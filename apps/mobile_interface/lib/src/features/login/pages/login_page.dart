@@ -46,8 +46,8 @@ class _LoginPageState extends State<LoginPage> {
 
       if (!mounted) return;
 
-      // After login, go to Group Session flow.
-      Navigator.pushReplacementNamed(context, AppRoutes.groupSessionSelect);
+      // After login, go to Courses (or MainShell later)
+      Navigator.pushReplacementNamed(context, AppRoutes.courses);
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {

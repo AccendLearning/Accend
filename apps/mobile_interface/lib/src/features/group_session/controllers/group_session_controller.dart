@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../../../common/services/api_client.dart';
 import '../../../common/services/auth_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/private_lobby.dart';
 
 class GroupSessionController extends ChangeNotifier {
@@ -28,12 +27,15 @@ class GroupSessionController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final client = Supabase.instance.client;
-      final list = await client
-          .from('private_lobbies')
-          .select('id,lobby_id,username,user_id,host,session_start,joined_at')
-          .eq('username', 'test5')
-          .limit(10);
+      final token = _auth.accessToken;
+      if (token == null) {
+        throw Exception("User not authenticated");
+      }
+
+      final list = await _api.getList(
+        "/private_lobbies",
+        accessToken: token,
+      );
 
       _privateLobby = list
           .cast<Map<String, dynamic>>()
