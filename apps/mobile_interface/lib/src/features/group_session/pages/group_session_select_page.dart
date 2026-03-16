@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../app/constants.dart';
 import '../../../app/routes.dart' as routes;
-import '../controllers/group_session_lobby_code_controller.dart';
+import '../controllers/group_session_controller.dart';
 import '../widgets/public_button.dart' as public_button;
 import '../widgets/private_button.dart' as private_button;
 import '../../../common/widgets/bottom_nav_bar.dart' as bot_nav_bar;
@@ -14,7 +14,7 @@ class GroupSessionSelectPage extends StatefulWidget {
 }
 
 class _GroupSessionSelectPageState extends State<GroupSessionSelectPage> {
-  final _c = OnboardingUserInfoController();
+
 
   final _lobbyCode = TextEditingController();
 
@@ -22,34 +22,6 @@ class _GroupSessionSelectPageState extends State<GroupSessionSelectPage> {
 
   int _selectedIndex = 1;
 
-  @override
-  void dispose() {
-    _lobbyCode.dispose();
-    super.dispose();
-  }
-
-  void _validate() {
-    _c.validate(
-      lobbyCode: _lobbyCode.text
-    );
-    setState(() {});
-  }
-
-  Future<void> _onContinue() async {
-    _validate();
-    if (!_c.isValid) return;
-
-    setState(() => _submitting = true);
-    try {
-      await Future.delayed(const Duration(milliseconds: 600));
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Continue (backend hookup next)')),
-      );
-    } finally {
-      if (mounted) setState(() => _submitting = false);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {

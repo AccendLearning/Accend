@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../app/constants.dart';
 import '../../../common/widgets/primary_button.dart';
-import '../controllers/group_session_lobby_code_controller.dart';
+import '../controllers/group_session_controller.dart';
 import '../widgets/widget1.dart';
 import '../../../app/routes.dart' as routes;
 import '../widgets/private_button.dart' as private_button;
@@ -15,43 +16,16 @@ class GroupSessionPrivateJoinPage extends StatefulWidget {
 }
 
 class _GroupSessionSelectPageState extends State<GroupSessionPrivateJoinPage> {
-  final _c = OnboardingUserInfoController();
+ 
 
   final _lobbyCode = TextEditingController();
 
-  bool _submitting = false;
 
-  @override
-  void dispose() {
-    _lobbyCode.dispose();
-    super.dispose();
-  }
-
-  void _validate() {
-    _c.validate(
-      lobbyCode: _lobbyCode.text
-    );
-    setState(() {});
-  }
-
-  Future<void> _onContinue() async {
-    _validate();
-    if (!_c.isValid) return;
-
-    setState(() => _submitting = true);
-    try {
-      await Future.delayed(const Duration(milliseconds: 600));
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Continue (backend hookup next)')),
-      );
-    } finally {
-      if (mounted) setState(() => _submitting = false);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
+
+    final ctrl = context.watch<GroupSessionController>();
     final t = Theme.of(context);
 
     int _selectedIndex = 1;
@@ -99,7 +73,22 @@ class _GroupSessionSelectPageState extends State<GroupSessionPrivateJoinPage> {
                   Spacer(),
                   // const SizedBox(height: 30),
 
-                  
+                  Builder(
+                    builder: (_) {
+                      // if (ctrl.isLoading) {
+                      //   return const Center(child: CircularProgressIndicator());
+                      // }
+
+                      return RichText(
+                        text: TextSpan(
+                          style: t.textTheme.headlineMedium,
+                          children: [
+                            const TextSpan(text: ctrl.privateLobby[0]["lobby_id"]: String), // TOTALLY WRONG BUT IDK WHAT TO DO HERE TO JUSTMAKE IT DISPLAY THE LOBBY CODE
+                          ],
+                        ),
+                      );
+                    },
+                  ),
 
                   Spacer(),
 

@@ -46,8 +46,6 @@ class AppRoutes {
   static const groupSessionPrivateJoin = '/group_session/private-join';
 
   static Map<String, WidgetBuilder> get table => {
-
-        // LEO TODO 
      
         login: (_) => const LoginPage(),
 
@@ -64,7 +62,7 @@ class AppRoutes {
         social: (_) => const SocialPage(),
         profile: (_) => const ProfilePage(),
         socialDebug: (_) => const SocialDebugPage(),
-        
+
         groupSessionSelect: (_) => const GroupSessionSelectPage(),
         groupSessionPrivateSelect: (_) => const GroupSessionPrivateSelectPage(),
         groupSessionPrivateCreate: (_) => const GroupSessionPrivateCreatePage(),

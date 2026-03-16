@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../app/constants.dart';
-import '../controllers/group_session_lobby_code_controller.dart';
+import '../controllers/group_session_controller.dart';
 import '../widgets/widget1.dart';
 import '../../../app/routes.dart' as routes;
 import '../widgets/private_button.dart' as private_button;
@@ -14,7 +14,6 @@ class GroupSessionPrivateSelectPage extends StatefulWidget {
 }
 
 class _GroupSessionSelectPageState extends State<GroupSessionPrivateSelectPage> {
-  final _c = OnboardingUserInfoController();
 
   final _lobbyCode = TextEditingController();
 
@@ -24,29 +23,6 @@ class _GroupSessionSelectPageState extends State<GroupSessionPrivateSelectPage> 
   void dispose() {
     _lobbyCode.dispose();
     super.dispose();
-  }
-
-  void _validate() {
-    _c.validate(
-      lobbyCode: _lobbyCode.text
-    );
-    setState(() {});
-  }
-
-  Future<void> _onContinue() async {
-    _validate();
-    if (!_c.isValid) return;
-
-    setState(() => _submitting = true);
-    try {
-      await Future.delayed(const Duration(milliseconds: 600));
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Continue (backend hookup next)')),
-      );
-    } finally {
-      if (mounted) setState(() => _submitting = false);
-    }
   }
 
   @override
@@ -138,16 +114,14 @@ class _GroupSessionSelectPageState extends State<GroupSessionPrivateSelectPage> 
 
                   OnboardingLabeledField(
                     label: 'Enter Lobby Code',
-                    rightLabel: _c.lobbyCodeErr != null ? 'Cannot be empty' : null,
+  
                     rightLabelColor: AppColors.failure,
                     child: TextField(
                       controller: _lobbyCode,
-                      onChanged: (_) {
-                        if (_c.lobbyCodeErr != null) _validate();
-                      },
+
                       decoration: InputDecoration(
                         hintText: 'e.g. 11223344',
-                        errorText: _c.lobbyCodeErr,
+
                       ),
                     ),
                   ),
