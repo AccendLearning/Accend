@@ -15,6 +15,7 @@ import '../features/home/pages/home.dart';
 import '../features/social/pages/social.dart';
 import '../features/social/pages/social_debug_page.dart';
 import '../features/public_profile/pages/profile.dart';
+import '../features/solo_practice/pages/solo_practice_page.dart';
 
 import '../features/group_session/pages/group_session_select_page.dart';
 import '../features/group_session/pages/group_session_private_select_page.dart';
@@ -40,6 +41,7 @@ class AppRoutes {
   static const social = '/social';
   static const profile = '/profile';
   static const socialDebug = '/social/debug';
+  static const soloPractice = '/solo-practice';
 
   static const groupSessionSelect = '/group_session/session-select';
   static const groupSessionPrivateSelect = '/group_session/private-select';
@@ -48,7 +50,6 @@ class AppRoutes {
   static const groupSessionActiveLobby = '/group_session/active-lobby';
 
   static Map<String, WidgetBuilder> get table => {
-     
         login: (_) => const LoginPage(),
 
         onboardingUserInfo: (_) => const OnboardingUserInfoPage(),
@@ -64,6 +65,7 @@ class AppRoutes {
         social: (_) => const SocialPage(),
         profile: (_) => const ProfilePage(),
         socialDebug: (_) => const SocialDebugPage(),
+        soloPractice: (_) => const SoloPracticePage(),
 
         groupSessionSelect: (_) => const GroupSessionSelectPage(),
         groupSessionPrivateSelect: (_) => const GroupSessionPrivateSelectPage(),
