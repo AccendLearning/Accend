@@ -1,34 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../app/constants.dart';
-import '../../../common/widgets/primary_button.dart';
 import '../controllers/group_session_controller.dart';
-import '../widgets/widget1.dart';
-import '../../../app/routes.dart' as routes;
-import '../widgets/private_button.dart' as private_button;
 import '../../../common/widgets/bottom_nav_bar.dart' as bot_nav_bar;
 
 class GroupSessionPrivateJoinPage extends StatefulWidget {
   const GroupSessionPrivateJoinPage({super.key});
 
   @override
-  State<GroupSessionPrivateJoinPage> createState() => _GroupSessionSelectPageState();
+  State<GroupSessionPrivateJoinPage> createState() => _GroupSessionPrivateJoinPageState();
 }
 
-class _GroupSessionSelectPageState extends State<GroupSessionPrivateJoinPage> {
- 
+class _GroupSessionPrivateJoinPageState extends State<GroupSessionPrivateJoinPage> {
+  int _selectedIndex = 1;
 
-  final _lobbyCode = TextEditingController();
-
-
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<GroupSessionController>().loadLobby();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-
     final ctrl = context.watch<GroupSessionController>();
     final t = Theme.of(context);
 
-    int _selectedIndex = 1;
+    String lobbyCode = 'No lobby found';
+    for (final lobby in ctrl.privateLobby) {
+      if (lobby.username.toLowerCase() == 'test5') {
+        lobbyCode = lobby.lobbyId;
+        break;
+      }
+    }
 
     return Scaffold(
       body: SafeArea(
@@ -73,22 +78,27 @@ class _GroupSessionSelectPageState extends State<GroupSessionPrivateJoinPage> {
                   Spacer(),
                   // const SizedBox(height: 30),
 
-                  Builder(
-                    builder: (_) {
-                      // if (ctrl.isLoading) {
-                      //   return const Center(child: CircularProgressIndicator());
-                      // }
-
-                      return RichText(
-                        text: TextSpan(
-                          style: t.textTheme.headlineMedium,
-                          children: [
-                            const TextSpan(text: ctrl.privateLobby["lobby_id"]: String), // TOTALLY WRONG, BASICALLY PSEUDOCODE, BUT IDK WHAT TO DO HERE TO JUSTMAKE IT DISPLAY THE LOBBY CODE
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+                  if (ctrl.isLoading)
+                    const CircularProgressIndicator()
+                  else if (ctrl.error != null)
+                    Text(
+                      'Failed to load lobbies: ${ctrl.error}',
+                      textAlign: TextAlign.center,
+                      style: t.textTheme.bodyMedium,
+                    )
+                  else
+                    RichText(
+                      text: TextSpan(
+                        style: t.textTheme.headlineMedium,
+                        children: [
+                          const TextSpan(text: 'Lobby Code: '),
+                          TextSpan(
+                            text: lobbyCode,
+                            style: t.textTheme.headlineMedium?.copyWith(color: AppColors.accent),
+                          ),
+                        ],
+                      ),
+                    ),
 
                   Spacer(),
 

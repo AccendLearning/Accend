@@ -4,29 +4,30 @@ class PrivateLobby {
   final String lobbyId;
   final String username;
   final String userId;
-  final String host;
-  final String sessionStart;
-  final DateTime joinedAt;
+  final String? host;
+  final String? sessionStart;
+  final DateTime? joinedAt;
 
   PrivateLobby({
     required this.id,
     required this.lobbyId,
     required this.username,
     required this.userId,
-    required this.host,
-    required this.sessionStart,
-    required this.joinedAt
+    this.host,
+    this.sessionStart,
+    this.joinedAt,
   });
 
   factory PrivateLobby.fromJson(Map<String, dynamic> json) {
+    final joinedAtRaw = json["joined_at"];
     return PrivateLobby(
-      id: json["id"] as String,
-      lobbyId: json["lobby_id"] as String,
-      username: json["username"] as String,
-      userId: json["user_id"] as String,
-      host: json["host"] as String,
-      sessionStart: json["session_start"] as String,
-      joinedAt: DateTime.parse(json["joined_at"] as String),
+      id: (json["id"] ?? '').toString(),
+      lobbyId: (json["lobby_id"] ?? '').toString(),
+      username: (json["username"] ?? '').toString(),
+      userId: (json["user_id"] ?? '').toString(),
+      host: json["host"]?.toString(),
+      sessionStart: json["session_start"]?.toString(),
+      joinedAt: joinedAtRaw == null ? null : DateTime.tryParse(joinedAtRaw.toString()),
     );
   }
 }

@@ -11,6 +11,7 @@ import 'package:mobile_interface/src/common/services/api_client.dart';
 import 'package:mobile_interface/src/common/services/auth_service.dart';
 import 'package:mobile_interface/src/features/onboarding/controllers/onboarding_controller.dart';
 import 'package:mobile_interface/src/features/social/controllers/social_controller.dart';
+import 'package:mobile_interface/src/features/group_session/controllers/group_session_controller.dart';
 
 import 'package:mobile_interface/src/features/courses/controllers/courses_controller.dart';
 
@@ -39,13 +40,19 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<SocialController>(
           create: (_) => SocialController(),
         ),
+        ChangeNotifierProvider<GroupSessionController>(
+          create: (ctx) => GroupSessionController(
+            api: ctx.read<ApiClient>(),
+            auth: ctx.read<AuthService>(),
+          ),
+        ),
       ],
       child: MaterialApp(
         title: AppStrings.appName,
         debugShowCheckedModeBanner: false,
         theme: AppTheme.dark(),
 
-        initialRoute: AppRoutes.groupSessionSelect,
+        initialRoute: AppRoutes.login,
 
         routes: AppRoutes.table,
       ),
