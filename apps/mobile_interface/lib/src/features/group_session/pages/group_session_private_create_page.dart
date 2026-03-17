@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import'package:mobile_interface/src/common/services/auth_service.dart';
+
 import '../../../app/constants.dart';
 import '../../../common/widgets/bottom_nav_bar.dart' as bot_nav_bar;
 import 'package:mobile_interface/src/features/group_session/controllers/group_session_controller.dart';
@@ -26,7 +28,11 @@ class _GroupSessionPrivateCreatePageState extends State<GroupSessionPrivateCreat
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final ctrl = context.read<GroupSessionController>();
-      ctrl.getLobby("112233");
+
+      final userId = context.read<AuthService>().currentUser?.id ?? 'Unknown';
+      final username = context.read<AuthService>().currentUser?.email ?? 'Unknown';
+      
+      ctrl.createLobby(userId, username);
     });
   }
 
@@ -35,14 +41,17 @@ class _GroupSessionPrivateCreatePageState extends State<GroupSessionPrivateCreat
     final t = Theme.of(context);
 
     final ctrl = context.watch<GroupSessionController>();
+    
+    
 
     final String lobbyCode;
     if (ctrl.isLoading) {
       lobbyCode = 'Loading...';
-    } else if (ctrl.privateLobby.isNotEmpty) {
-      lobbyCode = ctrl.privateLobby.first.lobbyId;
+    } else if (ctrl.createPrivateLobby?.lobbyId != null) {
+      lobbyCode = (ctrl.createPrivateLobby?.lobbyId).toString();
+    // } else if (ctrl.privateLobby.isNotEmpty) {
+    //   lobbyCode = ctrl.privateLobby.first.lobbyId;
     } else if (ctrl.error != null) {
-      print(ctrl.error);
       lobbyCode = 'Error';
     } else {
       lobbyCode = '------';

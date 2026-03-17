@@ -16,7 +16,7 @@ from random import randint
 from uuid import UUID
 
 from app.clients.supabase import rest_delete, rest_get, rest_post
-from app.schemas.private_lobby_schema import PrivateLobbyMemberOut
+from app.schemas.private_lobby_schema import PrivateLobbyMemberOut, PrivateLobbyCreate, PrivateLobbyDeleteOut
 
 
 class SupabasePrivateLobbyRepo:
@@ -33,7 +33,6 @@ class SupabasePrivateLobbyRepo:
         """
         Fetch all members of a private lobby, sorted by join order
         """
-        print(f"_______________________________Get Lobby Called {lobby_id}___________________________________")
         rows = rest_get(
             table="private_lobbies",
             params={
@@ -57,28 +56,16 @@ class SupabasePrivateLobbyRepo:
         )
         return [PrivateLobbyMemberOut.model_validate(row) for row in rows]
 
-    def create_lobby(self, user_id: UUID, username: str) -> PrivateLobbyMemberOut:
+    def create_lobby(self, data: PrivateLobbyCreate) -> PrivateLobbyMemberOut:
         """
         Insert a new private lobby row and return the inserted row.
         """
-
-        # rows = rest_get(
-        #     table="profiles",
-        #     params={
-        #         "select": "username",
-        #         "id": f"eq.{str(user_id)}"
-        #     }
-        # )
-        # username = rows[0]
-
-        # TODO: Need to check that the lobby id doesnt exist already
         lobby_id = randint(100000, 999999)
-
 
         payload = {
             "lobby_id": lobby_id,
-            "username": username,
-            "user_id": str(user_id),
+            "username": data.username,
+            "user_id": data.user_id,
         }
 
         rows = rest_post(

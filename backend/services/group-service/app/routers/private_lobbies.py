@@ -28,7 +28,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Header, HTTPException
 
 from app.dependencies import get_private_lobby_service
-from app.schemas.private_lobby_schema import PrivateLobbyDeleteOut, PrivateLobbyMemberOut
+from app.schemas.private_lobby_schema import PrivateLobbyCreate, PrivateLobbyDeleteOut, PrivateLobbyMemberOut
 from app.services.private_lobby_service import PrivateLobbyService
 
 
@@ -113,10 +113,9 @@ def get_my_lobbies(
     return svc.get_my_lobbies(user_id)
 
 
-@router.post("", response_model=PrivateLobbyMemberOut)
+@router.post("/create", response_model=PrivateLobbyMemberOut)
 def create_lobby(
-
-    username: str,
+    data: PrivateLobbyCreate,
     # Extract user identity from header
     x_user_id: str | None = Header(default=None, alias="X-User-Id"),
 
@@ -124,30 +123,11 @@ def create_lobby(
     svc: PrivateLobbyService = Depends(get_private_lobby_service),
 ):
     """
-    POST /courses
-
-    Creates a new course for the authenticated user.
-
-    Request body example:
-    {
-        "title": "Travel phrases for restaurants"
-    }
-
-    Flow:
-    1. FastAPI validates request body using CourseCreate schema
-    2. Extract user_id from header
-    3. Call service layer
-    4. Service calls repository
-    5. Repository inserts into Supabase
-    6. Return newly created course as CourseOut
-
-    response_model ensures:
-    - Returned data matches CourseOut structure
-    - Types are validated before sending response
+   
     """
 
     user_id = _get_user_id(x_user_id)
-    return svc.create_lobby(user_id, username)
+    return svc.create_lobby(data)
 
 @router.post("/join", response_model=PrivateLobbyMemberOut)
 def join_lobby(

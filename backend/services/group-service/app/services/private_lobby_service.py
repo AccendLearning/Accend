@@ -18,7 +18,7 @@ Later you might add rules like:
 from uuid import UUID
 
 from app.repositories.private_lobby_repo import PrivateLobbyRepo
-from app.schemas.private_lobby_schema import PrivateLobbyMemberOut
+from app.schemas.private_lobby_schema import PrivateLobbyMemberOut, PrivateLobbyCreate, PrivateLobbyDeleteOut
 
 
 class PrivateLobbyService:
@@ -38,9 +38,9 @@ class PrivateLobbyService:
         """Return the authenticated user's lobby rows."""
         return self.repo.get_my_lobbies(user_id)
     
-    def create_lobby(self, user_id: str, username: str) -> PrivateLobbyMemberOut:
+    def create_lobby(self, data: PrivateLobbyCreate) -> PrivateLobbyMemberOut:
         """Create a lobby and return it."""
-        return self.repo.create_lobby(user_id, username)
+        return self.repo.create_lobby(data)
 
     def join_lobby(self, user_id: str, lobby_id: int, username: str) -> PrivateLobbyMemberOut: 
         """Creates a row with lobby ID and user, joining the user to the lobby."""

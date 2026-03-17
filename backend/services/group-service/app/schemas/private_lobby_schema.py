@@ -17,6 +17,17 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
+class PrivateLobbyCreate(BaseModel):
+    """
+    Request shape for creating a private lobby.
+
+    Fields:
+    - username: The name of the user creating the lobby. Required to set the host and create the first member.
+    """
+
+    username: str
+    user_id: str
+
 class PrivateLobbyMemberOut(BaseModel):
     """
     Response shape for a member of a private lobby  returned from the DB.

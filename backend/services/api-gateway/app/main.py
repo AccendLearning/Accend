@@ -371,6 +371,36 @@ async def proxy_get_lobby(
         raise HTTPException(status_code=r.status_code, detail=r.text)
 
     return r.json()
+class CreatePrivateLobbyReq(BaseModel):
+    """
+    Request schema for generating a private lobby.
+    """
+    username: str = Field(min_length=1, max_length=5000)
+    user_id: str = Field(min_length=1, max_length=5000)
+
+@app.post("/private_lobbies/create")
+async def proxy_create_lobby(
+    body: CreatePrivateLobbyReq,
+    authorization: str | None = Header(default=None),
+):
+    """
+    
+    """
+    user_id = verify_supabase_jwt(authorization)
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.post(
+            f"{settings.GROUP_SERVICE_URL}/private_lobbies/create",
+            headers={"X-User-Id": user_id},
+            json={"username": body.username, "user_id": body.user_id},
+        )
+
+    if r.status_code >= 400:
+        raise HTTPException(status_code=r.status_code, detail=r.text)
+
+    return r.json()
+
+
 
 @app.get("/private_lobbies/me")
 async def proxy_get_my_private_lobbies(
