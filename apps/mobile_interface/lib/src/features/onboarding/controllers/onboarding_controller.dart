@@ -56,7 +56,7 @@ class OnboardingController extends ChangeNotifier {
       'mark_complete': true,
     };
 
-    await apiClient.postJson(
+    await apiClient.patchJson(
       '/profile/onboarding',
       accessToken: accessToken,
       body: updates,

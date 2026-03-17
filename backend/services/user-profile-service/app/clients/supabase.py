@@ -39,5 +39,32 @@ class SupabaseClient:
                 response=resp,
             )
 
+    async def patch(self, table: str, json: dict, params: dict) -> None:
+        """
+        Minimal helper for partial updates via Supabase REST (PostgREST).
+        Example:
+          await supabase.patch(
+              "profiles",
+              json={"learning_goal": "fluency"},
+              params={"id": "eq.<user_id>"},
+          )
+        """
+        url = f"{self.base_url}/{table}"
+
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.patch(
+                url,
+                headers=self.headers,
+                params=params,
+                json=json,
+            )
+
+        if resp.status_code >= 400:
+            raise httpx.HTTPStatusError(
+                f"Supabase PATCH error {resp.status_code}",
+                request=resp.request,
+                response=resp,
+            )
+
 
 supabase = SupabaseClient()
