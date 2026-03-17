@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../app/constants.dart';
 import '../../../common/widgets/bottom_nav_bar.dart' as bot_nav_bar;
-import '../controllers//group_session_controller.dart';
+import 'package:mobile_interface/src/features/group_session/controllers/group_session_controller.dart';
 import '../widgets/private_code_display.dart' as private_code_display;
 
 class GroupSessionPrivateCreatePage extends StatefulWidget {
@@ -26,7 +26,7 @@ class _GroupSessionPrivateCreatePageState extends State<GroupSessionPrivateCreat
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final ctrl = context.read<GroupSessionController>();
-      ctrl.loadLobby();
+      ctrl.loadLobby("hans");
     });
   }
 

@@ -1,8 +1,9 @@
 import 'package:flutter/foundation.dart';
-import '../../../common/services/api_client.dart';
-import '../../../common/services/auth_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/private_lobby.dart';
+
+import 'package:mobile_interface/src/common/services/api_client.dart';
+import 'package:mobile_interface/src/common/services/auth_service.dart';
+import 'package:mobile_interface/src/features/group_session/models/private_lobby.dart';
 
 class GroupSessionController extends ChangeNotifier {
   GroupSessionController({
@@ -22,7 +23,7 @@ class GroupSessionController extends ChangeNotifier {
   String? get error => _error;
   List<PrivateLobby> get privateLobby => List.unmodifiable(_privateLobby);
 
-  Future<void> loadLobby() async {
+  Future<void> loadLobby(String username) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -32,7 +33,7 @@ class GroupSessionController extends ChangeNotifier {
       final list = await client
           .from('private_lobbies')
           .select('id,lobby_id,username,user_id,host,session_start,joined_at')
-          .eq('username', 'test5')
+          .eq('username', username)
           .limit(10);
 
       _privateLobby = list
