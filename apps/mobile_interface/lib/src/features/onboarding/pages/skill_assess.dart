@@ -53,7 +53,6 @@ class _SkillAssessPageState extends State<SkillAssessPage> {
   }
 
   Future<void> _onBack() async {
-    await context.read<OnboardingController>().saveProgress();
     if (!mounted) return;
     Navigator.maybePop(context);
   }

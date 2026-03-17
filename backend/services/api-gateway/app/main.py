@@ -380,3 +380,29 @@ async def proxy_get_private_lobby(
             raise HTTPException(status_code=r.status_code, detail=r.text)
         
         return r.json()
+    
+#-----------------------------------
+# Connecting Profile to Database
+# -----------------------------------
+@app.patch("/profile/onboarding")
+async def proxy_profile_onboarding(
+    body: dict,
+    authorization: str | None = Header(default=None),
+):
+    """
+    Update onboarding-related fields on the user's profile.
+    Requires JWT; forwards X-User-Id to user-profile-service.
+    """
+    user_id = verify_supabase_jwt(authorization)
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.patch(
+            f"{settings.USER_PROFILE_SERVICE_URL}/profiles/onboarding",
+            headers={"X-User-Id": user_id},
+            json=body,
+        )
+
+    if r.status_code >= 400:
+        raise HTTPException(status_code=r.status_code, detail=r.text)
+
+    return r.json()

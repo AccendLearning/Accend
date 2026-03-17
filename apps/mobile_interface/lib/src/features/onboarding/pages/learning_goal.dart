@@ -74,7 +74,7 @@ class _LearningGoalPageState extends State<LearningGoalPage> {
   }
 
   Future<void> _onBack() async {
-    await context.read<OnboardingController>().saveProgress();
+
     if (!mounted) return;
     Navigator.maybePop(context);
   }
