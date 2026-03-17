@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -32,9 +33,9 @@ class _MicrophoneState extends State<Microphone> {
   }
 
   Future<String> _nextFilePath() async {
-    final dir = await getTemporaryDirectory(); // or getApplicationDocumentsDirectory()
-    final fileName = 'recording_${DateTime.now().millisecondsSinceEpoch}.wav';
-    return '${dir.path}${Platform.pathSeparator}$fileName';
+    final dir = await getTemporaryDirectory();
+    final ts = DateTime.now().millisecondsSinceEpoch;
+    return '${dir.path}${Platform.pathSeparator}recording_$ts.wav';
   }
 
   Future<void> _toggleRecording() async {
@@ -56,22 +57,42 @@ class _MicrophoneState extends State<Microphone> {
         return;
       }
 
-      final hasPermission = await _recorder.hasPermission();
+      // hasPermission() on Android both checks and, if needed, requests the
+      // RECORD_AUDIO runtime permission. Wrap in a timeout so a stalled
+      // permission-result callback doesn't lock up the button indefinitely.
+      final bool hasPermission;
+      try {
+        hasPermission = await _recorder
+            .hasPermission()
+            .timeout(const Duration(seconds: 10));
+      } on TimeoutException {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Permission request timed out. Please try again.'),
+          ),
+        );
+        return;
+      }
+
       if (!hasPermission) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Microphone permission is required.')),
+          const SnackBar(
+            content: Text(
+              'Microphone permission denied. Enable it in app Settings.',
+            ),
+          ),
         );
         return;
       }
 
       final path = await _nextFilePath();
-
       await _recorder.start(
-        RecordConfig(
-          encoder: AudioEncoder.wav, // match .wav
-          // sampleRate: 16000, // optional, depends on your needs
-          // bitRate: 128000,   // optional, depends on encoder
+        const RecordConfig(
+          encoder: AudioEncoder.wav,
+          sampleRate: 16000, // 16 kHz is guaranteed on all Android devices/emulators
+          numChannels: 1,    // mono — also what Azure Speech SDK expects
         ),
         path: path,
       );
@@ -81,6 +102,11 @@ class _MicrophoneState extends State<Microphone> {
         _isRecording = true;
       });
       widget.onRecordingStarted?.call();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Recording failed: $e')),
+      );
     } finally {
       _busy = false;
     }
