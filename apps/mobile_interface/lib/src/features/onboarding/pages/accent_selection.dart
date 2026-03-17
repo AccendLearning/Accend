@@ -83,7 +83,6 @@ class _AccentSelectionPageState extends State<AccentSelectionPage> {
   }
 
   Future<void> _onBack() async {
-    await context.read<OnboardingController>().saveProgress();
     if (!mounted) return;
     Navigator.maybePop(context);
   }

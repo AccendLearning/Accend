@@ -99,7 +99,6 @@ class _DailyGoalPageState extends State<DailyGoalPage> {
   }
 
   Future<void> _onBack() async {
-    await context.read<OnboardingController>().saveProgress();
     if (!mounted) return;
     Navigator.maybePop(context);
   }

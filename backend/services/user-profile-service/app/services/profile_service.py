@@ -29,3 +29,26 @@ class ProfileService:
             full_name=full_name,
             native_language=native_language,
         )
+
+    async def update_onboarding(
+        self,
+        user_id: str,
+        learning_goal: str | None = None,
+        feedback_tone: str | None = None,
+        accent: str | None = None,
+        daily_pace: str | None = None,
+        skill_assess: str | None = None,
+        mark_complete: bool = False,
+    ) -> None:
+        if not user_id:
+            bad_request("user_id missing")
+
+        await self.repo.update_onboarding(
+            user_id=user_id,
+            learning_goal=learning_goal,
+            feedback_tone=feedback_tone,
+            accent=accent,
+            daily_pace=daily_pace,
+            skill_assess=skill_assess,
+            mark_complete=mark_complete,
+        )

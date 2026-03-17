@@ -81,7 +81,7 @@ class _FeedbackTonePageState extends State<FeedbackTonePage> {
   }
 
   Future<void> _onBack() async {
-    await context.read<OnboardingController>().saveProgress();
+
     if (!mounted) return;
     Navigator.maybePop(context);
   }
