@@ -27,6 +27,14 @@ class GroupSessionController extends ChangeNotifier {
   PrivateLobby? get createPrivateLobby => _createPrivateLobby;
   PrivateLobby? get joinPrivateLobby => _joinPrivateLobby;
 
+  void resetPrivateLobbyState({bool notify = true}) {
+    _error = null;
+    _privateLobby = [];
+    _createPrivateLobby = null;
+    _joinPrivateLobby = null;
+    if (notify) notifyListeners();
+  }
+
 
 
   Future<List<PrivateLobby>> getLobby(String lobbyId) async {
@@ -62,6 +70,8 @@ class GroupSessionController extends ChangeNotifier {
   Future<PrivateLobby?> createLobby(String userId, String name) async {
     _isLoading = true;
     _error = null;
+    _createPrivateLobby = null;
+    _privateLobby = [];
     notifyListeners();
 
     try {
@@ -81,7 +91,6 @@ class GroupSessionController extends ChangeNotifier {
       _createPrivateLobby = PrivateLobby.fromJson(row);
     } catch (e) {
       _error = e.toString();
-      print(_error);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -92,6 +101,8 @@ class GroupSessionController extends ChangeNotifier {
   Future<PrivateLobby?> joinLobby(String userId, int lobbyId, String name) async {
     _isLoading = true;
     _error = null;
+    _joinPrivateLobby = null;
+    _privateLobby = [];
     notifyListeners();
 
     try {
@@ -113,7 +124,6 @@ class GroupSessionController extends ChangeNotifier {
       _joinPrivateLobby = PrivateLobby.fromJson(row);
     } catch (e) {
       _error = e.toString();
-      print(_error);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -138,9 +148,11 @@ class GroupSessionController extends ChangeNotifier {
       );
     } catch (e) {
       _error = e.toString();
-      print(_error);
     } finally {
       _isLoading = false;
+      _privateLobby = [];
+      _createPrivateLobby = null;
+      _joinPrivateLobby = null;
       notifyListeners();
     }
     return true;

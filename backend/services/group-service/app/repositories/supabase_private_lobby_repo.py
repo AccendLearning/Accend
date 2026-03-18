@@ -79,17 +79,17 @@ class SupabasePrivateLobbyRepo:
         return PrivateLobbyMemberOut.model_validate(rows[0])
     
     def join_lobby(self, data: PrivateLobbyJoin) -> PrivateLobbyMemberOut:
-        # rows = rest_get(
-        #     table="private_lobbies",
-        #     params={
-        #         "select": "id,lobby_id,username,user_id,host,session_start,joined_at",
-        #         "lobby_id": f"eq.{str(lobby_id)}",
-        #         "host": f"eq.TRUE"
-        #     }
-        # )
+        rows = rest_get(
+            table="private_lobbies",
+            params={
+                "select": "lobby_id",
+                "lobby_id": f"eq.{str(data.lobby_id)}",
+                "host": f"eq.TRUE"
+            }
+        )
 
-        # if not rows:
-        #     raise RuntimeError("No Lobby Available")
+        if not rows:
+            raise RuntimeError("No Lobby Available")
         
         payload = {
             "lobby_id": data.lobby_id,
@@ -109,6 +109,7 @@ class SupabasePrivateLobbyRepo:
         return PrivateLobbyMemberOut.model_validate(rows[0])
 
     def leave_lobby(self, user_id: str) -> bool:
+        
         rows = rest_delete(
             table="private_lobbies",
             match={
