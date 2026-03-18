@@ -498,16 +498,10 @@ async def proxy_pronunciation_assess(
 # Group Session Service
 # -----------------------------------
 
-<<<<<<< Leo/PrivateJoin
 @app.get("/private_lobbies/{lobby_id}")
 async def proxy_get_lobby(
     lobby_id: str,
     authorization: str | None = Header(default=None),
-=======
-@app.get("/private_lobbies")
-async def proxy_get_private_lobby(
-    authorization: str | None = Header(default=None)
->>>>>>> main
 ):
     user_id = verify_supabase_jwt(authorization)
 
@@ -524,7 +518,6 @@ async def proxy_get_private_lobby(
 
 class CreatePrivateLobbyReq(BaseModel):
     """
-<<<<<<< Leo/PrivateJoin
     Request schema for generating a private lobby.
     """
     username: str = Field(min_length=1, max_length=5000)
@@ -567,14 +560,12 @@ async def proxy_join_lobby(
 ):
     """
     
-=======
     Fetch private lobby data from group-service.
 
     Flow:
     1. Validate JWT.
     2. Forward request with X-User-Id header.
     3. Return downstream JSON response.
->>>>>>> main
     """
     user_id = verify_supabase_jwt(authorization)
 
