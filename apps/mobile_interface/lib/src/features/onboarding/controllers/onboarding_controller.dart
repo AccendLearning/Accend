@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_interface/src/app/routes.dart';
 import 'package:mobile_interface/src/common/services/api_client.dart';
 import 'package:mobile_interface/src/common/services/auth_service.dart';
 import '../models/onboarding_data.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class OnboardingController extends ChangeNotifier {
   final ApiClient apiClient;
@@ -40,30 +40,78 @@ class OnboardingController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Saves current onboarding answers to the profile without marking onboarding complete.
-  /// Call this when the user presses back so progress is persisted.
-  Future<void> saveProgress() async {
-    final userId = authService.currentUser?.id;
-    if (userId == null) return;
-    final client = Supabase.instance.client;
+  Future<void> saveProgress({bool silent = true}) async {
+    final accessToken = authService.accessToken;
+    if (accessToken == null || accessToken.isEmpty) {
+      if (silent) return;
+      throw Exception('No access token');
+    }
 
-    final updates = <String, dynamic>{};
-    if (data.learningGoal != null) updates['learning_goal'] = data.learningGoal;
-    if (data.feedbackTone != null) updates['feedback_tone'] = data.feedbackTone;
-    if (data.accent != null) updates['accent'] = data.accent;
-    if (data.dailyPace != null) updates['daily_pace'] = data.dailyPace;
-    if (data.skillAssess != null) updates['skill_assess'] = data.skillAssess;
-    if (updates.isEmpty) return;
-
-    await client.from('profiles').update(updates).eq('id', userId);
+    try {
+      await apiClient.patchJson(
+        '/profile/onboarding',
+        accessToken: accessToken,
+        body: data.toJson(),
+      );
+    } catch (e) {
+      debugPrint('Failed to save onboarding progress: $e');
+      if (!silent) rethrow;
+    }
   }
 
-  Future<void> saveAll() async {
-    final userId = authService.currentUser?.id;
-    if (userId == null) throw Exception('No user ID');
-    final client = Supabase.instance.client;
+  Future<String> getPostLoginRoute() async {
+    final accessToken = authService.accessToken;
+    if (accessToken == null || accessToken.isEmpty) {
+      throw Exception('No access token');
+    }
 
-    await client.from('profiles').select('id').eq('id', userId).single();
+    final profile = await apiClient.getJson(
+      '/profile',
+      accessToken: accessToken,
+    );
+
+    data.skillAssess = profile['skill_assess'] as String?;
+    data.learningGoal = profile['learning_goal'] as String?;
+    data.accent = profile['accent'] as String?;
+    data.feedbackTone = profile['feedback_tone'] as String?;
+    data.dailyPace = profile['daily_pace'] as String?;
+    notifyListeners();
+
+    if (profile['onboarding_complete'] == true) {
+      return AppRoutes.courses;
+    }
+
+    if (data.skillAssess == null) return AppRoutes.onboardingSkillAssess;
+    if (data.learningGoal == null) return AppRoutes.onboardingLearningGoal;
+    if (data.accent == null) return AppRoutes.onboardingAccentSelection;
+    if (data.feedbackTone == null) return AppRoutes.onboardingFeedbackTone;
+    return AppRoutes.onboardingDailyGoal;
+  }
+
+  String? previousRouteFor(String currentRoute) {
+    switch (currentRoute) {
+      case AppRoutes.onboardingSkillAssess:
+        return AppRoutes.login;
+      case AppRoutes.onboardingLearningGoal:
+        return AppRoutes.onboardingSkillAssess;
+      case AppRoutes.onboardingAccentSelection:
+        return AppRoutes.onboardingLearningGoal;
+      case AppRoutes.onboardingFeedbackTone:
+        return AppRoutes.onboardingAccentSelection;
+      case AppRoutes.onboardingDailyGoal:
+        return AppRoutes.onboardingFeedbackTone;
+      default:
+        return null;
+    }
+  }
+
+
+
+  Future<void> saveAll() async {
+    final accessToken = authService.accessToken;
+    if (accessToken == null) {
+      throw Exception('No access token');
+    }
 
     final updates = {
       'learning_goal': data.learningGoal,
@@ -71,9 +119,13 @@ class OnboardingController extends ChangeNotifier {
       'accent': data.accent,
       'daily_pace': data.dailyPace,
       'skill_assess': data.skillAssess,
-      'onboarding_complete': true,
+      'mark_complete': true,
     };
 
-    await client.from('profiles').update(updates).eq('id', userId);
+    await apiClient.patchJson(
+      '/profile/onboarding',
+      accessToken: accessToken,
+      body: updates,
+    );
   }
 }

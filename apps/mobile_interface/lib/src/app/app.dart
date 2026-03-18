@@ -41,10 +41,16 @@ class MyApp extends StatelessWidget {
           ),
         ),
         ChangeNotifierProvider<OnboardingController>(
-          create: (ctx) => OnboardingController(),
+          create: (ctx) => OnboardingController(
+            apiClient: ctx.read<ApiClient>(),
+            authService: ctx.read<AuthService>(),
+          ),
         ),
         ChangeNotifierProvider<SocialController>(
-          create: (_) => SocialController(),
+          create: (ctx) => SocialController(
+            api: ctx.read<ApiClient>(),
+            auth: ctx.read<AuthService>(),
+          ),
         ),
       ],
       child: MaterialApp(

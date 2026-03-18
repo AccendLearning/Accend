@@ -79,6 +79,30 @@ async def proxy_username_available(username: str):
     return r.json()
 
 # -----------------------------------
+# Proxy: GET /profile  (PROTECTED)
+# -----------------------------------
+
+@app.get("/profile")
+async def proxy_profile_get(
+    authorization: str | None = Header(default=None),
+):
+    """
+    Fetch authenticated user's profile for onboarding resume decisions.
+    """
+    user_id = verify_supabase_jwt(authorization)
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.get(
+            f"{settings.USER_PROFILE_SERVICE_URL}/profiles/me",
+            headers={"X-User-Id": user_id},
+        )
+
+    if r.status_code >= 400:
+        raise HTTPException(status_code=r.status_code, detail=r.text)
+
+    return r.json()
+
+# -----------------------------------
 # Proxy: POST /profile/init  (PROTECTED)
 # -----------------------------------
 
@@ -442,6 +466,27 @@ async def proxy_get_my_private_lobbies(
     async with httpx.AsyncClient(timeout=15) as client:
         r = await client.get(
             f"{settings.GROUP_SERVICE_URL}/private_lobbies/me",
+            eaders={"X-User-Id": user_id},
+        )
+        if r.status_code >= 400:
+            raise HTTPException(status_code=r.status_code, detail=r.text)
+        
+        return r.json()
+
+
+# -----------------------------------
+# Follow Service
+# -----------------------------------
+
+@app.get("/social/followers")
+async def proxy_social_followers(
+    authorization: str | None = Header(default=None),
+):
+    user_id = verify_supabase_jwt(authorization)
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.get(
+            f"{settings.FOLLOW_SERVICE_URL}/followers",
             headers={"X-User-Id": user_id},
         )
 
@@ -461,6 +506,88 @@ async def proxy_leave_lobby(
         r = await client.delete(
             f"{settings.GROUP_SERVICE_URL}/private_lobbies/leave",
             headers={"X-User-Id": user_id},
+        )
+
+    if r.status_code >= 400:
+        raise HTTPException(status_code=r.status_code, detail=r.text)
+
+    return r.json()
+
+
+@app.get("/social/following")
+async def proxy_social_following(
+    authorization: str | None = Header(default=None),
+):
+    user_id = verify_supabase_jwt(authorization)
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.get(
+            f"{settings.FOLLOW_SERVICE_URL}/following",
+            headers={"X-User-Id": user_id},
+        )
+
+    if r.status_code >= 400:
+        raise HTTPException(status_code=r.status_code, detail=r.text)
+
+    return r.json()
+
+
+@app.post("/social/follow/{followee_id}")
+async def proxy_social_follow_user(
+    followee_id: str,
+    authorization: str | None = Header(default=None),
+):
+    user_id = verify_supabase_jwt(authorization)
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.post(
+            f"{settings.FOLLOW_SERVICE_URL}/follow/{followee_id}",
+            headers={"X-User-Id": user_id},
+        )
+
+    if r.status_code >= 400:
+        raise HTTPException(status_code=r.status_code, detail=r.text)
+
+    return r.json()
+
+
+@app.delete("/social/follow/{followee_id}")
+async def proxy_social_unfollow_user(
+    followee_id: str,
+    authorization: str | None = Header(default=None),
+):
+    user_id = verify_supabase_jwt(authorization)
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.delete(
+            f"{settings.FOLLOW_SERVICE_URL}/follow/{followee_id}",
+            headers={"X-User-Id": user_id},
+        )
+
+    if r.status_code >= 400:
+        raise HTTPException(status_code=r.status_code, detail=r.text)
+
+    return r.json()
+    
+#-----------------------------------
+# Connecting Profile to Database
+# -----------------------------------
+@app.patch("/profile/onboarding")
+async def proxy_profile_onboarding(
+    body: dict,
+    authorization: str | None = Header(default=None),
+):
+    """
+    Update onboarding-related fields on the user's profile.
+    Requires JWT; forwards X-User-Id to user-profile-service.
+    """
+    user_id = verify_supabase_jwt(authorization)
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.patch(
+            f"{settings.USER_PROFILE_SERVICE_URL}/profiles/onboarding",
+            headers={"X-User-Id": user_id},
+            json=body,
         )
 
     if r.status_code >= 400:
