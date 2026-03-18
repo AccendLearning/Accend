@@ -38,12 +38,8 @@ from app.supabase_client import supabase_select_one
 
 from fastapi.middleware.cors import CORSMiddleware
 
-<<<<<<< Leo/PrivateJoin
-# Create FastAPI app
-=======
 
 # Create FastAPI application instance for the public gateway service.
->>>>>>> main
 app = FastAPI(title="api-gateway")
 
 # CORS configuration for local development.
