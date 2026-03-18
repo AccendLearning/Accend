@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import'package:mobile_interface/src/common/services/auth_service.dart';
+import '../../../app/routes.dart' as routes;
 
 import '../../../app/constants.dart';
-import '../../../common/widgets/bottom_nav_bar.dart' as bot_nav_bar;
 import 'package:mobile_interface/src/features/group_session/controllers/group_session_controller.dart';
-import '../widgets/private_code_display.dart' as private_code_display;
+import '../widgets/private_code_display.dart';
 
 class GroupSessionPrivateCreatePage extends StatefulWidget {
   const GroupSessionPrivateCreatePage({super.key});
@@ -49,8 +49,6 @@ class _GroupSessionPrivateCreatePageState extends State<GroupSessionPrivateCreat
       lobbyCode = 'Loading...';
     } else if (ctrl.createPrivateLobby?.lobbyId != null) {
       lobbyCode = (ctrl.createPrivateLobby?.lobbyId).toString();
-    // } else if (ctrl.privateLobby.isNotEmpty) {
-    //   lobbyCode = ctrl.privateLobby.first.lobbyId;
     } else if (ctrl.error != null) {
       lobbyCode = 'Error';
     } else {
@@ -69,7 +67,11 @@ class _GroupSessionPrivateCreatePageState extends State<GroupSessionPrivateCreat
                   Stack(
                     children: [
                       IconButton(
-                        onPressed: () => Navigator.maybePop(context),
+                        onPressed: () {
+                          Navigator.pushNamed(context, routes.AppRoutes.groupSessionPrivateSelect);
+
+                          ctrl.leaveLobby();
+                        },  
                         icon: const Icon(Icons.arrow_back_ios_new_rounded),
                       ),
 
@@ -100,16 +102,12 @@ class _GroupSessionPrivateCreatePageState extends State<GroupSessionPrivateCreat
                   const Spacer(),
                   // const SizedBox(height: 30),
 
-                  private_code_display.PrivateCodeDisplay(
+                  PrivateCodeDisplay(
                     code: lobbyCode,
                   ),
                   
                  const  Spacer(),
 
-                  bot_nav_bar.BottomNavBar(
-                    selectedIndex: _selectedIndex,
-                    onDestinationSelected: (index) => setState(() => _selectedIndex = index),
-                  ),
                 ],
               ),
             ),

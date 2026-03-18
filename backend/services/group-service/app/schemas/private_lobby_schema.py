@@ -28,6 +28,19 @@ class PrivateLobbyCreate(BaseModel):
     username: str
     user_id: str
 
+class PrivateLobbyJoin(BaseModel):
+    """
+    Request shape for joining a private lobby.
+
+    Fields:
+    - user_id: The ID of the user joining the lobby.
+    - lobby_id: The ID of the lobby to join.
+    - username: The name of the user joining the lobby.
+    """
+    lobby_id: int
+    username: str
+    user_id: str
+
 class PrivateLobbyMemberOut(BaseModel):
     """
     Response shape for a member of a private lobby  returned from the DB.

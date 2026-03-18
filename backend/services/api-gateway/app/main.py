@@ -371,6 +371,7 @@ async def proxy_get_lobby(
         raise HTTPException(status_code=r.status_code, detail=r.text)
 
     return r.json()
+
 class CreatePrivateLobbyReq(BaseModel):
     """
     Request schema for generating a private lobby.
@@ -400,6 +401,36 @@ async def proxy_create_lobby(
 
     return r.json()
 
+class JoinPrivateLobbyReq(BaseModel):
+    """
+    Request schema for joining a private lobby.
+    """
+    user_id: str = Field(min_length=1, max_length=5000)
+    lobby_id: int = Field(gt=0)
+    username: str = Field(min_length=1, max_length=5000)
+
+@app.post("/private_lobbies/join")
+async def proxy_join_lobby(
+    body: JoinPrivateLobbyReq,
+    authorization: str | None = Header(default=None),
+):
+    """
+    
+    """
+    user_id = verify_supabase_jwt(authorization)
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.post(
+            f"{settings.GROUP_SERVICE_URL}/private_lobbies/join",
+            headers={"X-User-Id": user_id},
+            json={"user_id": body.user_id, "lobby_id": body.lobby_id, "username": body.username},
+        )
+
+    if r.status_code >= 400:
+        raise HTTPException(status_code=r.status_code, detail=r.text)
+
+    return r.json()
+
 
 
 @app.get("/private_lobbies/me")
@@ -420,16 +451,15 @@ async def proxy_get_my_private_lobbies(
     return r.json()
 
 
-@app.delete("/private_lobbies/{row_id}")
-async def proxy_delete_private_lobby_row(
-    row_id: int,
+@app.delete("/private_lobbies/leave")
+async def proxy_leave_lobby(
     authorization: str | None = Header(default=None),
 ):
     user_id = verify_supabase_jwt(authorization)
 
     async with httpx.AsyncClient(timeout=15) as client:
         r = await client.delete(
-            f"{settings.GROUP_SERVICE_URL}/private_lobbies/{row_id}",
+            f"{settings.GROUP_SERVICE_URL}/private_lobbies/leave",
             headers={"X-User-Id": user_id},
         )
 

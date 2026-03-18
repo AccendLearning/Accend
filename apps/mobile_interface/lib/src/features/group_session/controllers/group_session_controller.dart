@@ -18,11 +18,16 @@ class GroupSessionController extends ChangeNotifier {
   String? _error;
   List<PrivateLobby> _privateLobby = [];
   PrivateLobby? _createPrivateLobby;
+  PrivateLobby? _joinPrivateLobby;
+
 
   bool get isLoading => _isLoading;
   String? get error => _error;
   List<PrivateLobby> get privateLobby => List.unmodifiable(_privateLobby);
   PrivateLobby? get createPrivateLobby => _createPrivateLobby;
+  PrivateLobby? get joinPrivateLobby => _joinPrivateLobby;
+
+
 
   Future<List<PrivateLobby>> getLobby(String lobbyId) async {
     _isLoading = true;
@@ -82,6 +87,63 @@ class GroupSessionController extends ChangeNotifier {
       notifyListeners();
     }
     return _createPrivateLobby;
+  }
+
+  Future<PrivateLobby?> joinLobby(String userId, int lobbyId, String name) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final token = _auth.accessToken;
+      if (token == null || token.isEmpty) {
+        throw StateError('Not authenticated');
+      }
+
+      final row = await _api.postJson(
+        '/private_lobbies/join',
+        accessToken: token,
+        body: {
+          "username": name,
+          "lobby_id": lobbyId,
+          "user_id": userId,
+          // TODO need to remove userID. Its already passed this is redundant and unsafe, but it works rn so im not touching it
+        },
+      );
+      _joinPrivateLobby = PrivateLobby.fromJson(row);
+    } catch (e) {
+      _error = e.toString();
+      print(_error);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return _joinPrivateLobby;
+  }
+
+  Future<bool> leaveLobby() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final token = _auth.accessToken;
+      if (token == null || token.isEmpty) {
+        throw StateError('Not authenticated');
+      }
+
+      await _api.deleteJson(
+        '/private_lobbies/leave',
+        accessToken: token,
+      );
+    } catch (e) {
+      _error = e.toString();
+      print(_error);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return true;
   }
 
 

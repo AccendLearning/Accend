@@ -16,7 +16,7 @@ from random import randint
 from uuid import UUID
 
 from app.clients.supabase import rest_delete, rest_get, rest_post
-from app.schemas.private_lobby_schema import PrivateLobbyMemberOut, PrivateLobbyCreate, PrivateLobbyDeleteOut
+from app.schemas.private_lobby_schema import PrivateLobbyMemberOut, PrivateLobbyCreate, PrivateLobbyDeleteOut, PrivateLobbyJoin
 
 
 class SupabasePrivateLobbyRepo:
@@ -78,32 +78,23 @@ class SupabasePrivateLobbyRepo:
         
         return PrivateLobbyMemberOut.model_validate(rows[0])
     
-    def join_lobby(self, user_id: UUID, lobby_id: int, username: str) -> PrivateLobbyMemberOut:
+    def join_lobby(self, data: PrivateLobbyJoin) -> PrivateLobbyMemberOut:
         # rows = rest_get(
         #     table="private_lobbies",
         #     params={
-        #         "select": "id,lobby_id,username,user_id,host,session_start,joined_atrname",
+        #         "select": "id,lobby_id,username,user_id,host,session_start,joined_at",
         #         "lobby_id": f"eq.{str(lobby_id)}",
         #         "host": f"eq.TRUE"
         #     }
         # )
 
         # if not rows:
-        #     raise RuntimeError("Supabase REST POST returned no row")
-        
-        # rows = rest_get(
-        #     table="profiles",
-        #     params={
-        #         "select": "username",
-        #         "id": f"eq.{str(user_id)}"
-        #     }
-        # )
-        # username = rows[0]
+        #     raise RuntimeError("No Lobby Available")
         
         payload = {
-            "lobby_id": lobby_id,
-            "username": username,
-            "user_id": str(user_id),
+            "lobby_id": data.lobby_id,
+            "username": data.username,
+            "user_id": data.user_id,
             "host": False,
         }
 
@@ -117,12 +108,11 @@ class SupabasePrivateLobbyRepo:
         
         return PrivateLobbyMemberOut.model_validate(rows[0])
 
-    def delete_row(self, user_id: UUID, row_id: int) -> bool:
+    def leave_lobby(self, user_id: str) -> bool:
         rows = rest_delete(
             table="private_lobbies",
             match={
-                "id": f"eq.{row_id}",
-                "user_id": f"eq.{str(user_id)}",
+                "user_id": f"eq.{user_id}",
             },
             select="id",
         )

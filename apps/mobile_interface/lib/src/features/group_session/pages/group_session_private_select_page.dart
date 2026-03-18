@@ -4,7 +4,6 @@ import '../controllers/group_session_controller.dart';
 import '../widgets/widget1.dart';
 import '../../../app/routes.dart' as routes;
 import '../widgets/private_button.dart' as private_button;
-import '../../../common/widgets/bottom_nav_bar.dart' as bot_nav_bar;
 
 class GroupSessionPrivateSelectPage extends StatefulWidget {
   const GroupSessionPrivateSelectPage({super.key});
@@ -43,7 +42,7 @@ class _GroupSessionSelectPageState extends State<GroupSessionPrivateSelectPage> 
                   Stack(
                     children: [
                       IconButton(
-                        onPressed: () => Navigator.maybePop(context),
+                        onPressed: () => Navigator.pushNamed(context, routes.AppRoutes.groupSessionSelect),
                         icon: const Icon(Icons.arrow_back_ios_new_rounded),
                       ),
 
@@ -120,7 +119,7 @@ class _GroupSessionSelectPageState extends State<GroupSessionPrivateSelectPage> 
                       controller: _lobbyCode,
 
                       decoration: InputDecoration(
-                        hintText: 'e.g. 11223344',
+                        hintText: 'e.g. 112233',
 
                       ),
                     ),
@@ -137,10 +136,6 @@ class _GroupSessionSelectPageState extends State<GroupSessionPrivateSelectPage> 
 
                   Spacer(),
 
-                  bot_nav_bar.BottomNavBar(
-                    selectedIndex: _selectedIndex,
-                    onDestinationSelected: (index) => setState(() => _selectedIndex = index),
-                  ),
                 ],
               ),
             ),

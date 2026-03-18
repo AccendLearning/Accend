@@ -6,7 +6,8 @@ import '../controllers/group_session_controller.dart';
 import '../widgets/widget1.dart';
 import '../../../app/routes.dart' as routes;
 import '../widgets/private_button.dart' as private_button;
-import '../../../common/widgets/bottom_nav_bar.dart' as bot_nav_bar;
+import'package:mobile_interface/src/common/services/auth_service.dart';
+import '../widgets/private_code_display.dart';
 
 class GroupSessionPrivateJoinPage extends StatefulWidget {
   const GroupSessionPrivateJoinPage({super.key});
@@ -15,10 +16,24 @@ class GroupSessionPrivateJoinPage extends StatefulWidget {
   State<GroupSessionPrivateJoinPage> createState() => _GroupSessionSelectPageState();
 }
 
+
+
 class _GroupSessionSelectPageState extends State<GroupSessionPrivateJoinPage> {
  
 
-  final _lobbyCode = TextEditingController();
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctrl = context.read<GroupSessionController>();
+
+      final userId = context.read<AuthService>().currentUser?.id ?? 'Unknown';
+      final username = context.read<AuthService>().currentUser?.email ?? 'Unknown';
+      
+      ctrl.joinLobby(userId, 972910, username);
+    });
+  }
 
 
 
@@ -28,7 +43,18 @@ class _GroupSessionSelectPageState extends State<GroupSessionPrivateJoinPage> {
     // final ctrl = context.watch<GroupSessionController>();
     final t = Theme.of(context);
 
-    int _selectedIndex = 1;
+    final ctrl = context.watch<GroupSessionController>();
+    
+    final String lobbyCode;
+    if (ctrl.isLoading) {
+      lobbyCode = 'Loading...';
+    } else if (ctrl.joinPrivateLobby?.lobbyId != null) {
+      lobbyCode = (ctrl.joinPrivateLobby?.lobbyId).toString();
+    } else if (ctrl.error != null) {
+      lobbyCode = 'Error';
+    } else {
+      lobbyCode = '------';
+    }
 
     return Scaffold(
       body: SafeArea(
@@ -42,7 +68,11 @@ class _GroupSessionSelectPageState extends State<GroupSessionPrivateJoinPage> {
                   Stack(
                     children: [
                       IconButton(
-                        onPressed: () => Navigator.maybePop(context),
+                        onPressed: () {
+                          Navigator.pushNamed(context, routes.AppRoutes.groupSessionPrivateSelect);
+
+                          ctrl.leaveLobby();
+                        }, 
                         icon: const Icon(Icons.arrow_back_ios_new_rounded),
                       ),
 
@@ -71,31 +101,13 @@ class _GroupSessionSelectPageState extends State<GroupSessionPrivateJoinPage> {
                   ),
 
                   Spacer(),
-                  // const SizedBox(height: 30),
 
-                  // Builder(
-                  //   builder: (_) {
-                  //     // if (ctrl.isLoading) {
-                  //     //   return const Center(child: CircularProgressIndicator());
-                  //     // }
-
-                  //     // return RichText(
-                  //     //   text: TextSpan(
-                  //     //     style: t.textTheme.headlineMedium,
-                  //     //     children: [
-                  //     //       const TextSpan(text: ctrl.privateLobby["lobby_id"]: String), // TOTALLY WRONG, BASICALLY PSEUDOCODE, BUT IDK WHAT TO DO HERE TO JUSTMAKE IT DISPLAY THE LOBBY CODE
-                  //     //     ],
-                  //     //   ),
-                  //     // );
-                  //   },
-                  // ),
+                  PrivateCodeDisplay(
+                    code: lobbyCode,
+                  ),
 
                   Spacer(),
 
-                  bot_nav_bar.BottomNavBar(
-                    selectedIndex: _selectedIndex,
-                    onDestinationSelected: (index) => setState(() => _selectedIndex = index),
-                  ),
                 ],
               ),
             ),
