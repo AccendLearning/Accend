@@ -1,3 +1,5 @@
+// lib/src/features/courses/pages/courses_list_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

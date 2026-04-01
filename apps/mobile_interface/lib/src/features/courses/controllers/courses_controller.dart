@@ -1,3 +1,5 @@
+// lib/src/features/courses/controllers/courses_controller.dart
+
 import 'package:flutter/foundation.dart';
 import '../../../common/services/api_client.dart';
 import '../../../common/services/auth_service.dart';
