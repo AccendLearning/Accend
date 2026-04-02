@@ -183,3 +183,37 @@ class SupabaseProfileRepo(ProfileRepo):
             json=payload,
             params={"id": f"eq.{user_id}"},
         )
+
+    async def update_profile_details(
+        self,
+        user_id: str,
+        full_name: str | None = None,
+        native_language: str | None = None,
+        learning_goal: str | None = None,
+        feedback_tone: str | None = None,
+        accent: str | None = None,
+        daily_pace: str | None = None,
+    ) -> None:
+        payload: dict[str, object] = {}
+
+        if full_name is not None:
+            payload["full_name"] = full_name
+        if native_language is not None:
+            payload["native_language"] = native_language
+        if learning_goal is not None:
+            payload["learning_goal"] = learning_goal
+        if feedback_tone is not None:
+            payload["feedback_tone"] = feedback_tone
+        if accent is not None:
+            payload["accent"] = accent
+        if daily_pace is not None:
+            payload["daily_pace"] = daily_pace
+
+        if not payload:
+            return
+
+        await supabase.patch(
+            "profiles",
+            json=payload,
+            params={"id": f"eq.{user_id}"},
+        )

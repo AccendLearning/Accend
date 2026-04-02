@@ -12,3 +12,8 @@ class SocialUserOut(BaseModel):
 
 class FollowWriteResponse(BaseModel):
     ok: bool
+
+
+class FollowCountsOut(BaseModel):
+    followers: int
+    following: int

@@ -86,7 +86,6 @@ class ProfileReadResponse(BaseModel):
     username: str
     email: str
     onboarding_complete: bool
-    email: str
     native_language: str | None = None
     full_name: str | None = None
     learning_goal: str | None = None
@@ -118,3 +117,12 @@ class ProfileOnboardingUpdate(BaseModel):
     daily_pace: str | None = None
     skill_assess: str | None = None
     mark_complete: bool = False
+
+
+class ProfileDetailsUpdate(BaseModel):
+    full_name: str | None = None
+    native_language: str | None = None
+    learning_goal: str | None = None
+    feedback_tone: str | None = None
+    accent: str | None = None
+    daily_pace: str | None = None
