@@ -422,11 +422,17 @@ async def generate_course(
         if "title" not in ai_data:
             raise HTTPException(status_code=502, detail="AI service returned no title")
 
+        title = ai_data.get("title", "Untitled Course")
+        image_url = ai_data.get("image_url")
+
         # Step 3: Create the parent course row first.
         course_resp = await client.post(
             f"{settings.COURSES_SERVICE_URL}/courses",
             headers={"X-User-Id": user_id},
-            json={"title": ai_data.get("title", "Untitled Course")},
+            json={
+                "title": title,
+                "image_url": image_url,
+            },
         )
 
         if course_resp.status_code >= 400:
