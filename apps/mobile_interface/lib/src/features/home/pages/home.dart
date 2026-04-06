@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../common/widgets/bottom_nav_bar.dart';
 import '../../../common/widgets/colored_button.dart';
 import '../../../app/routes.dart';
+import '../widgets/home_top_bar.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -22,11 +23,11 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Home")),
-      body: Center(
+      body: SafeArea(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            HomeTopBar(name: "Minh", imagePath: 'assets/images/profile.png'),
             Spacer(),
             ColoredButton(
               title: 'Solo Practice',
