@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../common/widgets/bottom_nav_bar.dart';
 import '../../../common/widgets/colored_button.dart';
 import '../../../app/routes.dart';
+import '../../../features/home/widgets/home_introduction.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -27,7 +28,27 @@ class HomePage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            GoalCard(
+              title: "Business English",
+              //subtitle: "Today's Goal",
+              currentMinutes: 8,
+              totalMinutes: 10,
+              streak: 124,
+              progress: 0.8,
+            ),
             Spacer(),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '  Practice Modes',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             ColoredButton(
               title: 'Solo Practice',
               subtitle: 'Personalized AI drills',
