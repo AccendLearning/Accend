@@ -27,15 +27,15 @@ class _GroupSessionPrivateCreatePageState extends State<GroupSessionPrivateCreat
   void initState() {
     super.initState();
 
-    context.read<GroupSessionController>().resetPrivateLobbyState();
+    context.read<GroupSessionController>().resetPrivateLobbyState(notify: false);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final ctrl = context.read<GroupSessionController>();
 
       final userId = context.read<AuthService>().currentUser?.id ?? 'Unknown';
-      final username = context.read<AuthService>().currentUser?.email ?? 'Unknown';
       
       () async {
+        final username = await ctrl.getCurrentUsername();
         await ctrl.createLobby(userId, username);
         final lobbyId = ctrl.createPrivateLobby?.lobbyId;
         if (!mounted || lobbyId == null || lobbyId.isEmpty) return;

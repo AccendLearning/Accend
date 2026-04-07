@@ -35,6 +35,39 @@ class GroupSessionController extends ChangeNotifier {
     if (notify) notifyListeners();
   }
 
+  Future<String> getCurrentUsername() async {
+    final user = _auth.currentUser;
+    final metadataUsername = (user?.userMetadata?['username'] as String?)?.trim();
+    if (metadataUsername != null && metadataUsername.isNotEmpty) {
+      return metadataUsername;
+    }
+
+    final token = _auth.accessToken;
+    if (token != null && token.isNotEmpty) {
+      try {
+        final profile = await _api.getJson('/profile', accessToken: token);
+        final profileUsername = (profile['username'] as String?)?.trim();
+        if (profileUsername != null && profileUsername.isNotEmpty) {
+          return profileUsername;
+        }
+      } catch (_) {
+        // Fallback below if profile lookup fails.
+      }
+    }
+
+    final emailPrefix = user?.email?.split('@').first.trim();
+    if (emailPrefix != null && emailPrefix.isNotEmpty) {
+      return emailPrefix;
+    }
+
+    final email = user?.email?.trim();
+    if (email != null && email.isNotEmpty) {
+      return email;
+    }
+
+    return 'Unknown';
+  }
+
 
 
   Future<List<PrivateLobby>> getLobby(String lobbyId) async {

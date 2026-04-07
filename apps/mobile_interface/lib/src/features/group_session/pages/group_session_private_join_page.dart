@@ -29,17 +29,17 @@ class _GroupSessionSelectPageState extends State<GroupSessionPrivateJoinPage> {
   void initState() {
     super.initState();
 
-    context.read<GroupSessionController>().resetPrivateLobbyState();
+    context.read<GroupSessionController>().resetPrivateLobbyState(notify: false);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final ctrl = context.read<GroupSessionController>();
 
       final userId = context.read<AuthService>().currentUser?.id ?? 'Unknown';
-      final username = context.read<AuthService>().currentUser?.email ?? 'Unknown';
       final lobbyCode = ModalRoute.of(context)?.settings.arguments as String? ?? 'Unknown';
       _lobbyCode = lobbyCode;
 
       () async {
+        final username = await ctrl.getCurrentUsername();
         await ctrl.joinLobby(userId, int.parse(lobbyCode), username);
         if (!mounted) return;
         await ctrl.getLobby(lobbyCode);
