@@ -31,9 +31,17 @@ async def post_daily_minutes(
         raise HTTPException(status_code=401, detail="X-User-Id header required")
     if body.seconds_delta < 0:
         raise HTTPException(status_code=400, detail="seconds_delta must be >= 0")
+    if body.goal_minutes is not None and body.goal_minutes <= 0:
+        raise HTTPException(status_code=400, detail="goal_minutes must be > 0")
 
     service = GoalsService(repo=SupabaseGoalsRepo())
-    return await service.log_daily_minutes(
+    if body.goal_minutes is None:
+        return await service.log_daily_minutes(
+            user_id=x_user_id,
+            seconds_delta=body.seconds_delta,
+        )
+    return await service.log_daily_minutes_with_goal(
         user_id=x_user_id,
         seconds_delta=body.seconds_delta,
+        goal_minutes=body.goal_minutes,
     )

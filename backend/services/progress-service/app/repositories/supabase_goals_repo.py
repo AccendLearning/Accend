@@ -63,3 +63,43 @@ class SupabaseGoalsRepo(GoalsRepo):
             # If write fails, return the current value we attempted.
             return minutes
         return minutes
+
+    async def list_daily_minutes(self, user_id: str) -> list[tuple[date, int]]:
+        try:
+            rows = await supabase.get(
+                "daily_minutes",
+                params={
+                    "select": "day,minutes",
+                    "user_id": f"eq.{user_id}",
+                    "order": "day.asc",
+                },
+            )
+        except httpx.HTTPStatusError:
+            return []
+
+        result: list[tuple[date, int]] = []
+        for row in rows:
+            day_raw = row.get("day")
+            if not day_raw:
+                continue
+            try:
+                parsed_day = date.fromisoformat(str(day_raw))
+            except ValueError:
+                continue
+            result.append((parsed_day, int(row.get("minutes", 0) or 0)))
+        return result
+
+    async def upsert_streak(self, user_id: str, current_streak: int, longest_streak: int) -> None:
+        try:
+            await supabase.upsert(
+                "streaks",
+                [
+                    {
+                        "user_id": user_id,
+                        "current_streak": max(0, int(current_streak)),
+                        "longest_streak": max(0, int(longest_streak)),
+                    }
+                ],
+            )
+        except httpx.HTTPStatusError:
+            return
