@@ -107,6 +107,100 @@ class GroupSessionController extends ChangeNotifier {
 
   }
 
+  Future<List<PrivateLobby>> getPublicLobby(String lobbyId, {bool showLoading = true}) async {
+    if (showLoading) {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+    }
+
+    try {
+      final token = _auth.accessToken;
+      if (token == null || token.isEmpty) {
+        throw StateError('Not authenticated');
+      }
+
+      final list = await _api.getList(
+        '/public_lobbies/$lobbyId',
+        accessToken: token,
+      );
+      _privateLobby = list
+          .cast<Map<String, dynamic>>()
+          .map((e) => PrivateLobby.fromJson(e))
+          .toList();
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      if (showLoading) {
+        _isLoading = false;
+      }
+      notifyListeners();
+    }
+    return _privateLobby;
+  }
+
+  Future<PrivateLobby?> matchmakePublicLobby() async {
+    _isLoading = true;
+    _error = null;
+    _joinPrivateLobby = null;
+    _privateLobby = [];
+    notifyListeners();
+
+    try {
+      final token = _auth.accessToken;
+      if (token == null || token.isEmpty) {
+        throw StateError('Not authenticated');
+      }
+
+      final userId = _auth.currentUser?.id ?? '';
+      final username = await getCurrentUsername();
+
+      final row = await _api.postJson(
+        '/public_lobbies/match',
+        accessToken: token,
+        body: {
+          'username': username,
+          'user_id': userId,
+        },
+      );
+      _joinPrivateLobby = PrivateLobby.fromJson(row);
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return _joinPrivateLobby;
+  }
+
+  Future<bool> leavePublicLobby() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final token = _auth.accessToken;
+      if (token == null || token.isEmpty) {
+        throw StateError('Not authenticated');
+      }
+
+      await _api.deleteJson(
+        '/public_lobbies/leave',
+        accessToken: token,
+      );
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _isLoading = false;
+      _privateLobby = [];
+      _createPrivateLobby = null;
+      _joinPrivateLobby = null;
+      unsubscribeFromLobby();
+      notifyListeners();
+    }
+    return true;
+  }
+
 
   Future<PrivateLobby?> createLobby(String userId, String name) async {
     _isLoading = true;
@@ -261,10 +355,9 @@ class GroupSessionController extends ChangeNotifier {
 
   Future<void> subscribeToLobby(String lobbyId) async {
     if (lobbyId.isEmpty) return;
-    if (_subscribedLobbyId == lobbyId && _lobbyChannel != null) return;
 
     unsubscribeFromLobby();
-    _subscribedLobbyId = lobbyId;
+    _subscribedLobbyId = 'private:$lobbyId';
 
     final channelName = 'private_lobby_$lobbyId';
     _lobbyChannel = _auth.client
@@ -283,6 +376,37 @@ class GroupSessionController extends ChangeNotifier {
             _isRealtimeSyncing = true;
             try {
               await getLobby(lobbyId, showLoading: false);
+            } finally {
+              _isRealtimeSyncing = false;
+            }
+          },
+        )
+        .subscribe();
+  }
+
+  Future<void> subscribeToPublicLobby(String lobbyId) async {
+    if (lobbyId.isEmpty) return;
+
+    unsubscribeFromLobby();
+    _subscribedLobbyId = 'public:$lobbyId';
+
+    final channelName = 'public_lobby_$lobbyId';
+    _lobbyChannel = _auth.client
+        .channel(channelName)
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'public_lobbies',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'lobby_id',
+            value: lobbyId,
+          ),
+          callback: (_) async {
+            if (_isRealtimeSyncing) return;
+            _isRealtimeSyncing = true;
+            try {
+              await getPublicLobby(lobbyId, showLoading: false);
             } finally {
               _isRealtimeSyncing = false;
             }
