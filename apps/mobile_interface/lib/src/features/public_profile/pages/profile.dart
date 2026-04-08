@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../../app/constants.dart';
 import '../../../common/widgets/bottom_nav_bar.dart';
+import '../../../common/utils/metric_formatters.dart';
 import '../../../app/routes.dart';
 import '../controllers/public_profile_controller.dart';
 import '../models/profile_page_data.dart';
@@ -88,7 +89,7 @@ class _ProfilePageState extends State<ProfilePage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      context.read<PublicProfileController>().load();
+      context.read<PublicProfileController>().load(force: true);
     });
   }
 
@@ -917,7 +918,7 @@ class _StatsSummary extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '##',
+                    formatMetersClimbed(data.metersClimbed),
                     style: GoogleFonts.inter(
                       color: Colors.white,
                       fontSize: 18,

@@ -82,10 +82,10 @@ def completed_lessons_count(
     svc: LessonService = Depends(get_lesson_service),
 ):
     """
-    Count completed lessons across all courses owned by the authenticated user.
+    Return lesson-driven stats across all courses owned by the authenticated user.
     """
     user_id = _get_user_id(x_user_id)
-    return {"lessons_completed": svc.get_completed_lessons_count(user_id)}
+    return svc.get_learning_stats(user_id)
 
 
 @router.post("/courses/{course_id}/lessons", response_model=LessonWithItemsOut)
@@ -129,8 +129,8 @@ def complete_lesson(
     Side Effects:
     - Triggers recalculation of course progress_percent and status.
     """
-    _get_user_id(x_user_id)
-    return svc.complete_lesson_and_update_course(course_id, lesson_id)
+    user_id = _get_user_id(x_user_id)
+    return svc.complete_lesson_and_update_course(user_id, course_id, lesson_id)
 
 
 @router.post("/courses/{course_id}/curriculum", response_model=list[LessonWithItemsOut])

@@ -17,6 +17,7 @@ class ProfilePageData {
     required this.currentStreak,
     required this.overallAccuracy,
     required this.lessonsCompleted,
+    required this.metersClimbed,
   });
 
   final String id;
@@ -36,6 +37,7 @@ class ProfilePageData {
   final int currentStreak;
   final double overallAccuracy;
   final int lessonsCompleted;
+  final int metersClimbed;
 
   String get displayName => (fullName?.trim().isNotEmpty ?? false) ? fullName!.trim() : username;
 
@@ -64,6 +66,7 @@ class ProfilePageData {
       currentStreak: (stats['current_streak'] as num?)?.toInt() ?? 0,
       overallAccuracy: (stats['overall_accuracy'] as num?)?.toDouble() ?? 0.0,
       lessonsCompleted: (stats['lessons_completed'] as num?)?.toInt() ?? 0,
+      metersClimbed: (stats['meters_climbed'] as num?)?.toInt() ?? (((stats['lessons_completed'] as num?)?.toInt() ?? 0) * 100),
     );
   }
 }

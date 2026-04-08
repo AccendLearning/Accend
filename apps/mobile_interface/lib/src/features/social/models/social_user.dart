@@ -10,6 +10,7 @@ class SocialUser {
     required this.currentStreak,
     required this.overallAccuracy,
     required this.lessonsCompleted,
+    required this.metersClimbed,
     required this.iFollow,
     required this.followsMe,
   });
@@ -24,6 +25,7 @@ class SocialUser {
   final int currentStreak;
   final double overallAccuracy;
   final int lessonsCompleted;
+  final int metersClimbed;
   final bool iFollow;
   final bool followsMe;
 
@@ -39,6 +41,7 @@ class SocialUser {
       currentStreak: (json['current_streak'] as num?)?.toInt() ?? 0,
       overallAccuracy: (json['overall_accuracy'] as num?)?.toDouble() ?? 0.0,
       lessonsCompleted: (json['lessons_completed'] as num?)?.toInt() ?? 0,
+      metersClimbed: (json['meters_climbed'] as num?)?.toInt() ?? (((json['lessons_completed'] as num?)?.toInt() ?? 0) * 100),
       iFollow: json['i_follow'] == true,
       followsMe: json['follows_me'] == true,
     );
@@ -52,6 +55,7 @@ class SocialUser {
     int? currentStreak,
     double? overallAccuracy,
     int? lessonsCompleted,
+    int? metersClimbed,
     bool? iFollow,
     bool? followsMe,
   }) {
@@ -66,6 +70,7 @@ class SocialUser {
       currentStreak: currentStreak ?? this.currentStreak,
       overallAccuracy: overallAccuracy ?? this.overallAccuracy,
       lessonsCompleted: lessonsCompleted ?? this.lessonsCompleted,
+      metersClimbed: metersClimbed ?? this.metersClimbed,
       iFollow: iFollow ?? this.iFollow,
       followsMe: followsMe ?? this.followsMe,
     );

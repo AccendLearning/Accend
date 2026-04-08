@@ -29,7 +29,7 @@ from __future__ import annotations
 from uuid import UUID
 from math import floor
 
-from app.clients.supabase import rest_get, rest_post, rest_patch
+from app.clients.supabase import rest_get, rest_post, rest_patch, rest_upsert
 from app.schemas.lesson_schema import (
     LessonCreate,
     LessonOut,
@@ -177,7 +177,7 @@ class SupabaseLessonRepo:
         # Return the created lesson in nested API response shape.
         return LessonWithItemsOut(**lesson.model_dump(), items=created_items)
 
-    def complete_lesson_and_update_course(self, course_id: UUID, lesson_id: UUID) -> LessonOut:
+    def complete_lesson_and_update_course(self, user_id: UUID, course_id: UUID, lesson_id: UUID) -> LessonOut:
         """
         Mark a lesson as completed and recompute cached course progress.
 
@@ -252,6 +252,9 @@ class SupabaseLessonRepo:
             payload={"progress_percent": progress, "status": status},
             select="id",
         )
+
+        lessons_completed = self.get_completed_lessons_count(user_id)
+        self._upsert_learning_stats(user_id, lessons_completed)
 
         return lesson
 
@@ -373,3 +376,41 @@ class SupabaseLessonRepo:
             },
         )
         return len(done_rows)
+
+    def get_learning_stats(self, user_id: UUID) -> dict[str, int]:
+        """
+        Return lesson-driven stats for the user.
+
+        meters_climbed prefers the cached user_stats value when available and
+        falls back to lessons_completed * 100 for older rows.
+        """
+        lessons_completed = self.get_completed_lessons_count(user_id)
+        stats_rows = rest_get(
+            table="user_stats",
+            params={
+                "select": "meters_climbed",
+                "user_id": f"eq.{str(user_id)}",
+                "limit": "1",
+            },
+        )
+
+        raw_meters = stats_rows[0].get("meters_climbed") if stats_rows else None
+        meters_climbed = lessons_completed * 100 if raw_meters is None else max(0, int(raw_meters))
+
+        return {
+            "lessons_completed": lessons_completed,
+            "meters_climbed": meters_climbed,
+        }
+
+    def _upsert_learning_stats(self, user_id: UUID, lessons_completed: int) -> None:
+        meters_climbed = max(0, int(lessons_completed)) * 100
+        rest_upsert(
+            table="user_stats",
+            payload={
+                "user_id": str(user_id),
+                "lessons_completed": max(0, int(lessons_completed)),
+                "meters_climbed": meters_climbed,
+            },
+            select="user_id,lessons_completed,meters_climbed",
+            on_conflict="user_id",
+        )

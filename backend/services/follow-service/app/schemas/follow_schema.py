@@ -12,6 +12,7 @@ class SocialUserOut(BaseModel):
     current_streak: int = 0
     overall_accuracy: float = 0.0
     lessons_completed: int = 0
+    meters_climbed: int = 0
     i_follow: bool
     follows_me: bool
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile_interface/src/app/constants.dart';
+import 'package:mobile_interface/src/common/utils/metric_formatters.dart';
 
 import '../models/social_user.dart';
 
@@ -216,11 +217,11 @@ class _SocialUserProfilePopup extends StatelessWidget {
                     label: 'LESSONS COMPLETED',
                     value: '${user.lessonsCompleted}',
                   ),
-                  const _MetricCard(
+                  _MetricCard(
                     icon: Icons.military_tech_rounded,
                     iconColor: Color(0xFFFACC15),
                     label: 'METERS CLIMBED',
-                    value: '##',
+                    value: formatMetersClimbed(user.metersClimbed),
                   ),
                 ],
               ),

@@ -60,6 +60,7 @@ class SupabaseFollowRepo:
                 current_streak=metrics["streak"].get(follower_id, 0),
                 overall_accuracy=metrics["accuracy"].get(follower_id, 0.0),
                 lessons_completed=metrics["lessons"].get(follower_id, 0),
+                meters_climbed=metrics["meters"].get(follower_id, 0),
             )
             for follower_id in follower_ids
             if follower_id in profiles
@@ -98,6 +99,7 @@ class SupabaseFollowRepo:
                 current_streak=metrics["streak"].get(followee_id, 0),
                 overall_accuracy=metrics["accuracy"].get(followee_id, 0.0),
                 lessons_completed=metrics["lessons"].get(followee_id, 0),
+                meters_climbed=metrics["meters"].get(followee_id, 0),
             )
             for followee_id in followee_ids
             if followee_id in profiles
@@ -154,6 +156,7 @@ class SupabaseFollowRepo:
                 current_streak=metrics["streak"].get(row["id"], 0),
                 overall_accuracy=metrics["accuracy"].get(row["id"], 0.0),
                 lessons_completed=metrics["lessons"].get(row["id"], 0),
+                meters_climbed=metrics["meters"].get(row["id"], 0),
             )
             for row in rows
             if row.get("id")
@@ -242,6 +245,7 @@ class SupabaseFollowRepo:
         current_streak: int,
         overall_accuracy: float,
         lessons_completed: int,
+        meters_climbed: int,
     ) -> SocialUserOut:
         level_label = row.get("skill_assess") or row.get("level") or None
         display_name = row.get("full_name") or row.get("username") or "Unknown"
@@ -257,6 +261,7 @@ class SupabaseFollowRepo:
             current_streak=max(0, int(current_streak)),
             overall_accuracy=max(0.0, min(100.0, float(overall_accuracy))),
             lessons_completed=max(0, int(lessons_completed)),
+            meters_climbed=max(0, int(meters_climbed)),
             i_follow=i_follow,
             follows_me=follows_me,
         )
@@ -267,6 +272,7 @@ class SupabaseFollowRepo:
                 "streak": {},
                 "accuracy": {},
                 "lessons": {},
+                "meters": {},
             }
 
         streak_req = supabase.get(
@@ -279,7 +285,7 @@ class SupabaseFollowRepo:
         lessons_req = supabase.get(
             "user_stats",
             params={
-                "select": "user_id,lessons_completed,overall_accuracy",
+                "select": "user_id,lessons_completed,overall_accuracy,meters_climbed",
                 "user_id": self._in_clause(user_ids),
             },
         )
@@ -304,9 +310,19 @@ class SupabaseFollowRepo:
             for row in lessons_rows
             if row.get("user_id")
         }
+        meters_map: dict[str, int] = {
+            str(row.get("user_id")): (
+                max(0, int(row.get("meters_climbed")))
+                if row.get("meters_climbed") is not None
+                else max(0, int(row.get("lessons_completed", 0) or 0)) * 100
+            )
+            for row in lessons_rows
+            if row.get("user_id")
+        }
 
         return {
             "streak": streak_map,
             "accuracy": accuracy_map,
             "lessons": lessons_map,
+            "meters": meters_map,
         }

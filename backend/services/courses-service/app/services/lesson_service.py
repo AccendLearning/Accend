@@ -72,7 +72,7 @@ class LessonService:
         """
         return self.repo.create_lesson_with_items(course_id, data)
 
-    def complete_lesson_and_update_course(self, course_id: UUID, lesson_id: UUID) -> LessonOut:
+    def complete_lesson_and_update_course(self, user_id: UUID, course_id: UUID, lesson_id: UUID) -> LessonOut:
         """
         Mark a lesson as complete and update course progress.
 
@@ -83,7 +83,7 @@ class LessonService:
         - Could enforce user ownership.
         - Could track completion analytics or streaks.
         """
-        return self.repo.complete_lesson_and_update_course(course_id, lesson_id)
+        return self.repo.complete_lesson_and_update_course(user_id, course_id, lesson_id)
 
     def create_curriculum(self, course_id: UUID, data: CurriculumCreate) -> list[LessonWithItemsOut]:
         """
@@ -103,3 +103,9 @@ class LessonService:
         Return completed lesson count across all user-owned courses.
         """
         return self.repo.get_completed_lessons_count(user_id)
+
+    def get_learning_stats(self, user_id: UUID) -> dict[str, int]:
+        """
+        Return lesson-driven profile stats for the user.
+        """
+        return self.repo.get_learning_stats(user_id)
