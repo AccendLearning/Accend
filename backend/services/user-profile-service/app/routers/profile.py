@@ -36,6 +36,8 @@ from app.schemas.profile_schema import (
     ProfileInitRequest,
     ProfileInitResponse,
     ProfileDetailsUpdate,
+    ProfileImageResponse,
+    ProfileImageUpdateRequest,
     ProfileReadResponse,
     ProfileOnboardingUpdate,
 )
@@ -152,5 +154,27 @@ async def patch_profile_details(
     await svc.update_profile_details(
         user_id=x_user_id or "",
         **body.dict(exclude_unset=True),
+    )
+    return ProfileInitResponse(ok=True)
+
+
+@router.get("/profiles/me/image")
+async def get_profile_image(
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+    svc: ProfileService = Depends(get_profile_service),
+) -> ProfileImageResponse:
+    image_url = await svc.get_profile_image_url(x_user_id or "")
+    return ProfileImageResponse(profile_image_url=image_url)
+
+
+@router.patch("/profiles/me/image")
+async def patch_profile_image(
+    body: ProfileImageUpdateRequest,
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+    svc: ProfileService = Depends(get_profile_service),
+) -> ProfileInitResponse:
+    await svc.update_profile_image_url(
+        user_id=x_user_id or "",
+        profile_image_url=body.profile_image_url,
     )
     return ProfileInitResponse(ok=True)

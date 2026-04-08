@@ -93,6 +93,10 @@ class ProfileRepo(Protocol):
         daily_pace: str | None = None,
         focus_areas: str | None = None,
     ) -> None: ...
+
+    async def get_profile_image_url(self, user_id: str) -> str | None: ...
+
+    async def update_profile_image_url(self, user_id: str, profile_image_url: str) -> None: ...
     """
     Update onboarding-related fields for a user's profile.
 

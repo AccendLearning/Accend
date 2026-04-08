@@ -1239,3 +1239,41 @@ async def proxy_daily_minutes_update(
         raise HTTPException(status_code=r.status_code, detail=r.text)
 
     return r.json()
+
+
+@app.get("/profile/image")
+async def proxy_profile_image_get(
+    authorization: str | None = Header(default=None),
+):
+    user_id = verify_supabase_jwt(authorization)
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.get(
+            f"{settings.USER_PROFILE_SERVICE_URL}/profiles/me/image",
+            headers={"X-User-Id": user_id},
+        )
+
+    if r.status_code >= 400:
+        raise HTTPException(status_code=r.status_code, detail=r.text)
+
+    return r.json()
+
+
+@app.patch("/profile/image")
+async def proxy_profile_image_patch(
+    body: dict,
+    authorization: str | None = Header(default=None),
+):
+    user_id = verify_supabase_jwt(authorization)
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.patch(
+            f"{settings.USER_PROFILE_SERVICE_URL}/profiles/me/image",
+            headers={"X-User-Id": user_id},
+            json=body,
+        )
+
+    if r.status_code >= 400:
+        raise HTTPException(status_code=r.status_code, detail=r.text)
+
+    return r.json()

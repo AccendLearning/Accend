@@ -57,7 +57,7 @@ class SupabaseProfileRepo(ProfileRepo):
         rows = await supabase.get(
             "profiles",
             params={
-                "select": "id,username,onboarding_complete,email,native_language,full_name,learning_goal,feedback_tone,accent,daily_pace,skill_assess,focus_areas",
+                "select": "id,username,onboarding_complete,email,native_language,full_name,learning_goal,feedback_tone,accent,daily_pace,skill_assess,focus_areas,profile_image_url",
                 "id": f"eq.{user_id}",
                 "limit": "1",
             },
@@ -181,6 +181,29 @@ class SupabaseProfileRepo(ProfileRepo):
         await supabase.patch(
             "profiles",
             json=payload,
+            params={"id": f"eq.{user_id}"},
+        )
+
+    async def get_profile_image_url(self, user_id: str) -> str | None:
+        rows = await supabase.get(
+            "profiles",
+            params={
+                "select": "profile_image_url",
+                "id": f"eq.{user_id}",
+                "limit": "1",
+            },
+        )
+
+        if not rows:
+            not_found("profile not found for user")
+
+        value = rows[0].get("profile_image_url")
+        return value if isinstance(value, str) and value.strip() else None
+
+    async def update_profile_image_url(self, user_id: str, profile_image_url: str) -> None:
+        await supabase.patch(
+            "profiles",
+            json={"profile_image_url": profile_image_url},
             params={"id": f"eq.{user_id}"},
         )
 
