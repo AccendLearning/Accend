@@ -174,6 +174,8 @@ class _ProfilePageState extends State<ProfilePage> {
           data,
           profileCtrl.isLoading,
           profileCtrl.isSaving,
+          profileCtrl.isUploadingImage,
+          () => _pickProfileImage(context, profileCtrl),
         );
       },
     );
@@ -184,6 +186,8 @@ class _ProfilePageState extends State<ProfilePage> {
     ProfilePageData data,
     bool isRefreshing,
     bool isSaving,
+    bool isUploadingImage,
+    VoidCallback onChangePhoto,
   ) {
     return Scaffold(
       backgroundColor: AppColors.primaryBg,
@@ -203,6 +207,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     data: data,
                     nativeLanguage: _selectedNativeLanguage ?? '',
                     goals: _selectedGoals,
+                    isUploadingImage: isSaving || isUploadingImage,
+                    onChangePhoto: onChangePhoto,
                   ),
                   const SizedBox(height: 18),
                   _StatsPanel(data: data),
@@ -675,6 +681,28 @@ class _ProfilePageState extends State<ProfilePage> {
       );
     }
   }
+
+  Future<void> _pickProfileImage(BuildContext context, PublicProfileController controller) async {
+    if (controller.isUploadingImage) {
+      return;
+    }
+
+    try {
+      await controller.uploadProfileImageFromGallery();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile image updated.')),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(controller.error ?? 'Failed to update profile image.'),
+          backgroundColor: AppColors.failure,
+        ),
+      );
+    }
+  }
 }
 
 class _Header extends StatelessWidget {
@@ -710,11 +738,15 @@ class _ProfileHero extends StatelessWidget {
     required this.data,
     required this.nativeLanguage,
     required this.goals,
+    required this.isUploadingImage,
+    required this.onChangePhoto,
   });
 
   final ProfilePageData data;
   final String nativeLanguage;
   final List<String> goals;
+  final bool isUploadingImage;
+  final VoidCallback onChangePhoto;
 
   String _initialsFor(String value) {
     final parts = value
@@ -738,35 +770,47 @@ class _ProfileHero extends StatelessWidget {
       children: [
         Column(
           children: [
-            Container(
-              width: 96,
-              height: 96,
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.accent, width: 2),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x4C06B6D4),
-                    blurRadius: 18,
-                  ),
-                ],
-              ),
-              child: Container(
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Color(0xFF1E293B),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                _ProfileAvatar(
+                  imageUrl: data.profileImageUrl,
+                  initials: _initialsFor(data.displayName),
                 ),
-                alignment: Alignment.center,
-                child: Text(
-                  _initialsFor(data.displayName),
-                  style: GoogleFonts.montserrat(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
+                Positioned(
+                  right: -2,
+                  bottom: -2,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: isUploadingImage ? null : onChangePhoto,
+                      borderRadius: BorderRadius.circular(999),
+                      child: Ink(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.accent, width: 1.5),
+                        ),
+                        child: isUploadingImage
+                            ? const Padding(
+                                padding: EdgeInsets.all(7),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.accent,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.camera_alt_rounded,
+                                size: 16,
+                                color: AppColors.accent,
+                              ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
             const SizedBox(height: 12),
             Container(
@@ -1797,6 +1841,71 @@ class _GoalOptionTile extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileAvatar extends StatelessWidget {
+  const _ProfileAvatar({
+    required this.imageUrl,
+    required this.initials,
+  });
+
+  final String? imageUrl;
+  final String initials;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasImage = imageUrl != null && imageUrl!.trim().isNotEmpty;
+
+    return Container(
+      width: 96,
+      height: 96,
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.accent, width: 2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x4C06B6D4),
+            blurRadius: 18,
+          ),
+        ],
+      ),
+      child: ClipOval(
+        child: hasImage
+            ? Image.network(
+                imageUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _AvatarInitials(initials: initials),
+              )
+            : _AvatarInitials(initials: initials),
+      ),
+    );
+  }
+}
+
+class _AvatarInitials extends StatelessWidget {
+  const _AvatarInitials({required this.initials});
+
+  final String initials;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: Color(0xFF1E293B),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        initials,
+        style: GoogleFonts.montserrat(
+          color: Colors.white,
+          fontSize: 28,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );

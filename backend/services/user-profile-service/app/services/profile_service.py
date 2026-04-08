@@ -88,6 +88,14 @@ class ProfileService:
 
         return ", ".join(normalized_parts)
 
+    def _validate_profile_image_url(self, value: str) -> str:
+        url = value.strip()
+        if not url:
+            bad_request("profile_image_url is required")
+        if not (url.startswith("http://") or url.startswith("https://")):
+            bad_request("profile_image_url must be an absolute URL")
+        return url
+
     async def get_profile(self, user_id: str) -> dict:
         """
         Retrieve a user's profile.
@@ -254,3 +262,16 @@ class ProfileService:
             daily_pace=cleaned_daily_pace,
             focus_areas=cleaned_focus_areas,
         )
+
+    async def get_profile_image_url(self, user_id: str) -> str | None:
+        if not user_id:
+            bad_request("user_id missing")
+
+        return await self.repo.get_profile_image_url(user_id)
+
+    async def update_profile_image_url(self, user_id: str, profile_image_url: str) -> None:
+        if not user_id:
+            bad_request("user_id missing")
+
+        cleaned_url = self._validate_profile_image_url(profile_image_url)
+        await self.repo.update_profile_image_url(user_id, cleaned_url)
