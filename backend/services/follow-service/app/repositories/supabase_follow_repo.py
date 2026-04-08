@@ -50,6 +50,7 @@ class SupabaseFollowRepo:
         )
         i_follow_ids = {row["followee_id"] for row in following_rows}
         metrics = await self._get_social_metrics(follower_ids)
+        await self._sync_missing_profile_levels(profiles, metrics["level"])
 
         return [
             self._to_social_user(
@@ -90,6 +91,7 @@ class SupabaseFollowRepo:
         )
         follows_me_ids = {row["follower_id"] for row in follower_rows}
         metrics = await self._get_social_metrics(followee_ids)
+        await self._sync_missing_profile_levels(profiles, metrics["level"])
 
         return [
             self._to_social_user(
@@ -148,6 +150,7 @@ class SupabaseFollowRepo:
         )
         follows_me_ids = {row["follower_id"] for row in follower_rows}
         metrics = await self._get_social_metrics(candidate_ids)
+        await self._sync_missing_profile_levels({row["id"]: row for row in rows if row.get("id")}, metrics["level"])
 
         return [
             self._to_social_user(
@@ -270,6 +273,30 @@ class SupabaseFollowRepo:
             i_follow=i_follow,
             follows_me=follows_me,
         )
+
+    async def _sync_missing_profile_levels(
+        self,
+        profiles: dict[str, dict],
+        level_map: dict[str, float | int],
+    ) -> None:
+        for user_id, profile in profiles.items():
+            if profile.get("level") is not None:
+                continue
+
+            target_level = max(1, int(level_map.get(user_id, 1) or 1))
+            try:
+                await supabase.patch(
+                    "profiles",
+                    params={
+                        "id": f"eq.{user_id}",
+                        "select": "id,level",
+                    },
+                    json={"level": target_level},
+                )
+                profile["level"] = target_level
+            except httpx.HTTPStatusError:
+                # Do not fail social read if a profile-level repair fails.
+                continue
 
     async def _get_social_metrics(self, user_ids: list[str]) -> dict[str, dict[str, float | int]]:
         if not user_ids:

@@ -381,14 +381,16 @@ class SupabaseLessonRepo:
         """
         Return lesson-driven stats for the user.
 
-        meters_climbed and level prefer cached user_stats values when available
-        and fall back to derivation for older rows.
+        meters_climbed prefers cached user_stats when available and falls back
+        to lessons_completed * 100 for older rows.
+
+        level is always derived from meters_climbed and synced to profiles.level.
         """
         lessons_completed = self.get_completed_lessons_count(user_id)
         stats_rows = rest_get(
             table="user_stats",
             params={
-                "select": "meters_climbed,level",
+                "select": "meters_climbed",
                 "user_id": f"eq.{str(user_id)}",
                 "limit": "1",
             },
@@ -396,8 +398,7 @@ class SupabaseLessonRepo:
 
         raw_meters = stats_rows[0].get("meters_climbed") if stats_rows else None
         meters_climbed = lessons_completed * 100 if raw_meters is None else max(0, int(raw_meters))
-        raw_level = stats_rows[0].get("level") if stats_rows else None
-        level = self._calculate_level_from_meters(meters_climbed) if raw_level is None else max(1, int(raw_level))
+        level = self._calculate_level_from_meters(meters_climbed)
         self._sync_profile_level(user_id=str(user_id), level=level)
 
         return {
@@ -411,8 +412,8 @@ class SupabaseLessonRepo:
         Backfill profiles.level for all existing profiles.
 
         Source of truth:
-        - user_stats.level when present
-        - otherwise derived from meters_climbed (or lessons_completed fallback)
+        - derived from user_stats.meters_climbed
+        - falls back to lessons_completed * 100 when meters are missing
         - default to level 1 when no stats exist
         """
         profiles_rows = rest_get(
@@ -422,7 +423,7 @@ class SupabaseLessonRepo:
 
         stats_rows = rest_get(
             table="user_stats",
-            params={"select": "user_id,lessons_completed,meters_climbed,level"},
+            params={"select": "user_id,lessons_completed,meters_climbed"},
         )
         stats_by_user: dict[str, dict] = {
             str(row.get("user_id")): row
@@ -442,22 +443,13 @@ class SupabaseLessonRepo:
             processed += 1
             stats = stats_by_user.get(user_id)
 
-            if stats and stats.get("level") is not None:
-                target_level = max(1, int(stats.get("level")))
-            elif stats:
+            if stats:
                 meters = (
                     max(0, int(stats.get("meters_climbed")))
                     if stats.get("meters_climbed") is not None
                     else max(0, int(stats.get("lessons_completed", 0) or 0)) * 100
                 )
                 target_level = self._calculate_level_from_meters(meters)
-                rest_upsert(
-                    table="user_stats",
-                    payload={"user_id": user_id, "level": target_level},
-                    select="user_id,level",
-                    on_conflict="user_id",
-                )
-                updated_user_stats += 1
             else:
                 existing_level = profile.get("level")
                 target_level = max(1, int(existing_level)) if existing_level is not None else 1
@@ -483,9 +475,8 @@ class SupabaseLessonRepo:
                 "user_id": str(user_id),
                 "lessons_completed": max(0, int(lessons_completed)),
                 "meters_climbed": meters_climbed,
-                "level": level,
             },
-            select="user_id,lessons_completed,meters_climbed,level",
+            select="user_id,lessons_completed,meters_climbed",
             on_conflict="user_id",
         )
         self._sync_profile_level(user_id=str(user_id), level=level)

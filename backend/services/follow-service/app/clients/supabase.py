@@ -53,5 +53,21 @@ class SupabaseClient:
                 response=resp,
             )
 
+    async def patch(self, table: str, params: dict, json: dict) -> list[dict]:
+        url = f"{self.base_url}/{table}"
+
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.patch(url, headers=self.headers, params=params, json=json)
+
+        if resp.status_code >= 400:
+            raise httpx.HTTPStatusError(
+                f"Supabase PATCH error {resp.status_code}",
+                request=resp.request,
+                response=resp,
+            )
+
+        data = resp.json()
+        return data if isinstance(data, list) else []
+
 
 supabase = SupabaseClient()
