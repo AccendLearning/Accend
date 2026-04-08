@@ -66,6 +66,9 @@ class SupabaseClient:
                 response=resp,
             )
 
+        if not resp.content or not resp.content.strip():
+            return []
+
         data = resp.json()
         return data if isinstance(data, list) else []
 
