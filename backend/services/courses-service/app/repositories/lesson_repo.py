@@ -75,3 +75,8 @@ class LessonRepo(Protocol):
 
     Includes lessons_completed and meters_climbed.
     """
+
+    def backfill_profile_levels(self) -> dict[str, int]: ...
+    """
+    Backfill profiles.level for existing users based on user_stats.
+    """

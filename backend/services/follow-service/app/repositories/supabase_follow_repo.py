@@ -1,6 +1,5 @@
 from uuid import UUID
 import httpx
-import asyncio
 
 from app.clients.supabase import supabase
 from app.schemas.follow_schema import SocialUserOut
@@ -8,7 +7,7 @@ from app.utils.errors import bad_request, not_found
 
 
 class SupabaseFollowRepo:
-    _profile_select = "id,username,full_name,level,skill_assess,native_language,learning_goal,focus_areas"
+    _profile_select = "id,username,full_name,level,native_language,learning_goal,focus_areas"
 
     async def get_counts(self, user_id: UUID) -> tuple[int, int]:
         followers_rows = await supabase.get(
@@ -57,6 +56,7 @@ class SupabaseFollowRepo:
                 profiles[follower_id],
                 i_follow=follower_id in i_follow_ids,
                 follows_me=True,
+                level=metrics["level"].get(follower_id, 1),
                 current_streak=metrics["streak"].get(follower_id, 0),
                 overall_accuracy=metrics["accuracy"].get(follower_id, 0.0),
                 lessons_completed=metrics["lessons"].get(follower_id, 0),
@@ -96,6 +96,7 @@ class SupabaseFollowRepo:
                 profiles[followee_id],
                 i_follow=True,
                 follows_me=followee_id in follows_me_ids,
+                level=metrics["level"].get(followee_id, 1),
                 current_streak=metrics["streak"].get(followee_id, 0),
                 overall_accuracy=metrics["accuracy"].get(followee_id, 0.0),
                 lessons_completed=metrics["lessons"].get(followee_id, 0),
@@ -153,6 +154,7 @@ class SupabaseFollowRepo:
                 row,
                 i_follow=row["id"] in i_follow_ids,
                 follows_me=row["id"] in follows_me_ids,
+                level=metrics["level"].get(row["id"], 1),
                 current_streak=metrics["streak"].get(row["id"], 0),
                 overall_accuracy=metrics["accuracy"].get(row["id"], 0.0),
                 lessons_completed=metrics["lessons"].get(row["id"], 0),
@@ -242,19 +244,22 @@ class SupabaseFollowRepo:
         *,
         i_follow: bool,
         follows_me: bool,
+        level: int,
         current_streak: int,
         overall_accuracy: float,
         lessons_completed: int,
         meters_climbed: int,
     ) -> SocialUserOut:
-        level_label = row.get("skill_assess") or row.get("level") or None
         display_name = row.get("full_name") or row.get("username") or "Unknown"
+        profile_level = row.get("level")
+        safe_level = max(1, int(profile_level)) if profile_level is not None else max(1, int(level))
 
         return SocialUserOut(
             id=row["id"],
             display_name=display_name,
             username=row.get("username") or "unknown",
-            level_label=level_label,
+            level=safe_level,
+            level_label=f"Level {safe_level}",
             native_language=row.get("native_language"),
             learning_goal=row.get("learning_goal"),
             focus_areas=row.get("focus_areas"),
@@ -273,6 +278,7 @@ class SupabaseFollowRepo:
                 "accuracy": {},
                 "lessons": {},
                 "meters": {},
+                "level": {},
             }
 
         streak_req = supabase.get(
@@ -282,18 +288,27 @@ class SupabaseFollowRepo:
                 "user_id": self._in_clause(user_ids),
             },
         )
-        lessons_req = supabase.get(
-            "user_stats",
-            params={
-                "select": "user_id,lessons_completed,overall_accuracy,meters_climbed",
-                "user_id": self._in_clause(user_ids),
-            },
-        )
-
-        streak_rows, lessons_rows = await asyncio.gather(
-            streak_req,
-            lessons_req,
-        )
+        streak_rows = await streak_req
+        try:
+            lessons_rows = await supabase.get(
+                "user_stats",
+                params={
+                    "select": "user_id,lessons_completed,overall_accuracy,meters_climbed,level",
+                    "user_id": self._in_clause(user_ids),
+                },
+            )
+        except httpx.HTTPStatusError as e:
+            # Backward-compatible fallback for environments where user_stats.level
+            # has not been deployed yet.
+            if e.response is None or e.response.status_code != 400:
+                raise
+            lessons_rows = await supabase.get(
+                "user_stats",
+                params={
+                    "select": "user_id,lessons_completed,overall_accuracy,meters_climbed",
+                    "user_id": self._in_clause(user_ids),
+                },
+            )
 
         streak_map: dict[str, int] = {
             str(row.get("user_id")): int(row.get("current_streak", 0) or 0)
@@ -319,10 +334,29 @@ class SupabaseFollowRepo:
             for row in lessons_rows
             if row.get("user_id")
         }
+        level_map: dict[str, int] = {
+            str(row.get("user_id")): (
+                max(1, int(row.get("level")))
+                if row.get("level") is not None
+                else self._level_from_meters(
+                    max(0, int(row.get("meters_climbed")))
+                    if row.get("meters_climbed") is not None
+                    else max(0, int(row.get("lessons_completed", 0) or 0)) * 100
+                )
+            )
+            for row in lessons_rows
+            if row.get("user_id")
+        }
 
         return {
             "streak": streak_map,
             "accuracy": accuracy_map,
             "lessons": lessons_map,
             "meters": meters_map,
+            "level": level_map,
         }
+
+    @staticmethod
+    def _level_from_meters(meters_climbed: int) -> int:
+        safe_meters = max(0, int(meters_climbed))
+        return (safe_meters // 1000) + 1

@@ -439,6 +439,7 @@ async def profile_page_preload(
             "overall_accuracy": float(accuracy_res.json().get("overall_accuracy", 0.0) or 0.0),
             "lessons_completed": int(lessons_completed_res.json().get("lessons_completed", 0) or 0),
             "meters_climbed": int(lessons_completed_res.json().get("meters_climbed", 0) or 0),
+            "level": int(lessons_completed_res.json().get("level", 1) or 1),
         },
     }
 

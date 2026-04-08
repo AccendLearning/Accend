@@ -3,7 +3,7 @@ class SocialUser {
     required this.id,
     required this.displayName,
     required this.username,
-    this.levelLabel,
+    required this.level,
     this.nativeLanguage,
     this.learningGoalCsv,
     this.focusAreasCsv,
@@ -18,7 +18,7 @@ class SocialUser {
   final String id;
   final String displayName;
   final String username;
-  final String? levelLabel;
+  final int level;
   final String? nativeLanguage;
   final String? learningGoalCsv;
   final String? focusAreasCsv;
@@ -29,12 +29,14 @@ class SocialUser {
   final bool iFollow;
   final bool followsMe;
 
+  String get levelLabel => 'Level $level';
+
   factory SocialUser.fromJson(Map<String, dynamic> json) {
     return SocialUser(
       id: json['id'] as String,
       displayName: (json['display_name'] ?? json['username'] ?? 'Unknown') as String,
       username: (json['username'] ?? 'unknown') as String,
-      levelLabel: json['level_label'] as String?,
+      level: ((json['level'] as num?)?.toInt() ?? 1).clamp(1, 1000000),
       nativeLanguage: json['native_language'] as String?,
       learningGoalCsv: json['learning_goal'] as String?,
       focusAreasCsv: json['focus_areas'] as String?,
@@ -48,7 +50,7 @@ class SocialUser {
   }
 
   SocialUser copyWith({
-    String? levelLabel,
+    int? level,
     String? nativeLanguage,
     String? learningGoalCsv,
     String? focusAreasCsv,
@@ -63,7 +65,7 @@ class SocialUser {
       id: id,
       displayName: displayName,
       username: username,
-      levelLabel: levelLabel ?? this.levelLabel,
+      level: level ?? this.level,
       nativeLanguage: nativeLanguage ?? this.nativeLanguage,
       learningGoalCsv: learningGoalCsv ?? this.learningGoalCsv,
       focusAreasCsv: focusAreasCsv ?? this.focusAreasCsv,

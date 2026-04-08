@@ -109,3 +109,9 @@ class LessonService:
         Return lesson-driven profile stats for the user.
         """
         return self.repo.get_learning_stats(user_id)
+
+    def backfill_profile_levels(self) -> dict[str, int]:
+        """
+        Backfill profiles.level values for existing users.
+        """
+        return self.repo.backfill_profile_levels()

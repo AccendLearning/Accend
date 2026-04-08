@@ -88,6 +88,20 @@ def completed_lessons_count(
     return svc.get_learning_stats(user_id)
 
 
+@router.post("/lessons/backfill-levels")
+def backfill_levels(
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+    svc: LessonService = Depends(get_lesson_service),
+):
+    """
+    Backfill profile levels for existing users.
+
+    Requires authenticated caller, then performs a service-side migration.
+    """
+    _get_user_id(x_user_id)
+    return svc.backfill_profile_levels()
+
+
 @router.post("/courses/{course_id}/lessons", response_model=LessonWithItemsOut)
 def create_lesson(
     course_id: UUID,
