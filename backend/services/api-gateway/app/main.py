@@ -1036,12 +1036,23 @@ async def proxy_daily_minutes_update(
     - seconds_delta: int (elapsed active seconds in current session chunk)
     """
     user_id = verify_supabase_jwt(authorization)
+    seconds_delta = int(body.get("seconds_delta", 0) or 0)
 
     async with httpx.AsyncClient(timeout=10) as client:
+        profile_resp = await client.get(
+            f"{settings.USER_PROFILE_SERVICE_URL}/profiles/me",
+            headers={"X-User-Id": user_id},
+        )
+        if profile_resp.status_code >= 400:
+            raise HTTPException(status_code=profile_resp.status_code, detail=profile_resp.text)
+        profile = profile_resp.json()
+        daily_pace = profile.get("daily_pace") if isinstance(profile, dict) else None
+        goal_minutes = _goal_minutes_from_daily_pace(daily_pace)
+
         r = await client.post(
             f"{settings.PROGRESS_SERVICE_URL}/daily-minutes",
             headers={"X-User-Id": user_id, "Content-Type": "application/json"},
-            json=body,
+            json={"seconds_delta": seconds_delta, "goal_minutes": goal_minutes},
         )
 
     if r.status_code >= 400:

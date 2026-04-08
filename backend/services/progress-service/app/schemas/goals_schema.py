@@ -10,6 +10,7 @@ class GoalProgressResponse(BaseModel):
 
 class DailyMinutesLogRequest(BaseModel):
     seconds_delta: int
+    goal_minutes: int | None = None
 
 
 class DailyMinutesLogResponse(BaseModel):
