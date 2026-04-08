@@ -83,7 +83,7 @@ class SupabasePhonemeRepo(PhonemeRepo):
         if not rows:
             return
 
-        await supabase.upsert(TABLE, rows)
+        await supabase.upsert(TABLE, rows, on_conflict="user_id,phoneme")
 
     async def get_cached_overall_accuracy(self, user_id: str) -> float | None:
         try:
