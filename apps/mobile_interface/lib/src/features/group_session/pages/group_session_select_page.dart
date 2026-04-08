@@ -5,6 +5,7 @@ import '../../../app/routes.dart' as routes;
 import '../widgets/public_button.dart' as public_button;
 import '../widgets/private_button.dart' as private_button;
 import '../../../common/widgets/bottom_nav_bar.dart' as bot_nav_bar;
+import '../controllers/group_session_controller.dart';
 
 class GroupSessionSelectPage extends StatefulWidget {
   const GroupSessionSelectPage({super.key});
