@@ -14,18 +14,32 @@ class HomeController extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   String _displayName = 'there';
+  String? _activeCourseId;
+  String _activeCourseTitle = 'No active course yet';
+  int _currentMinutes = 0;
+  int _goalMinutes = 10;
+  int _currentStreak = 0;
 
   bool get isLoading => _isLoading;
   String? get error => _error;
   String get displayName => _displayName;
+  String? get activeCourseId => _activeCourseId;
+  String get activeCourseTitle => _activeCourseTitle;
+  bool get hasActiveCourse => _activeCourseId != null && _activeCourseId!.isNotEmpty;
+  int get currentMinutes => _currentMinutes;
+  int get goalMinutes => _goalMinutes;
+  int get currentStreak => _currentStreak;
+  double get progress {
+    if (_goalMinutes <= 0) return 0;
+    return (_currentMinutes / _goalMinutes).clamp(0, 1).toDouble();
+  }
 
   Future<void> load() async {
     if (_isLoading) return;
 
     final accessToken = _auth.accessToken;
     if (accessToken == null || accessToken.isEmpty) {
-      _displayName = 'there';
-      _error = 'You must be logged in to load profile.';
+      _error = 'You must be logged in.';
       notifyListeners();
       return;
     }
@@ -35,27 +49,28 @@ class HomeController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final profile = await _api.getJson(
-        '/profile',
-        accessToken: accessToken,
-      );
+      final data = await _api.getJson('/home', accessToken: accessToken);
 
-      final fullName = (profile['full_name'] as String?)?.trim();
-      final username = (profile['username'] as String?)?.trim();
-      _displayName = _pickDisplayName(fullName: fullName, username: username);
+      _displayName = ((data['display_name'] as String?) ?? 'there').trim();
+      if (_displayName.isEmpty) _displayName = 'there';
+      _currentMinutes = (data['current_minutes'] as int?) ?? 0;
+      _goalMinutes = (data['goal_minutes'] as int?) ?? 10;
+      _currentStreak = (data['current_streak'] as int?) ?? 0;
+
+      final activeCourse = data['active_course'];
+      if (activeCourse is Map<String, dynamic>) {
+        _activeCourseId = (activeCourse['id'] as String?)?.trim();
+        _activeCourseTitle = ((activeCourse['title'] as String?) ?? 'Untitled course').trim();
+      } else {
+        _activeCourseId = null;
+        _activeCourseTitle = 'No active course yet';
+      }
     } catch (e) {
       _error = e.toString();
-      _displayName = 'there';
-      debugPrint('Failed to load home profile: $e');
+      debugPrint('Failed to load home data: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
     }
-  }
-
-  String _pickDisplayName({String? fullName, String? username}) {
-    if (fullName != null && fullName.isNotEmpty) return fullName;
-    if (username != null && username.isNotEmpty) return username;
-    return 'there';
   }
 }

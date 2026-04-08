@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../common/widgets/bottom_nav_bar.dart';
 import '../../../common/widgets/colored_button.dart';
 import '../../../app/routes.dart';
+import '../../../features/home/widgets/home_introduction.dart';
 import '../controllers/home_controller.dart';
 import '../widgets/home_top_bar.dart';
 
@@ -47,14 +48,52 @@ class _HomePageState extends State<HomePage> {
       animation: _controller,
       builder: (context, _) => Scaffold(
         body: SafeArea(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
               HomeTopBar(
                 name: _controller.displayName,
                 imagePath: 'assets/images/profile.png',
               ),
-              Spacer(),
+              const SizedBox(height: 20),
+              if (_controller.isLoading)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 20),
+                  child: CircularProgressIndicator(),
+                ),
+              GoalCard(
+                title: _controller.activeCourseTitle,
+                currentMinutes: _controller.currentMinutes,
+                totalMinutes: _controller.goalMinutes,
+                streak: _controller.currentStreak,
+                progress: _controller.progress,
+                isLoading: _controller.isLoading || !_controller.hasActiveCourse,
+                onKeepGoing: () {
+                  if (!_controller.hasActiveCourse) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('No active course to continue yet.')),
+                    );
+                    return;
+                  }
+                  Navigator.of(context).pushNamed(
+                    AppRoutes.courses,
+                    arguments: _controller.activeCourseId,
+                  );
+                },
+              ),
+              const SizedBox(height: 24),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '  Practice Modes',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
               ColoredButton(
                 title: 'Solo Practice',
                 subtitle: 'Personalized AI drills',
@@ -78,8 +117,9 @@ class _HomePageState extends State<HomePage> {
                 secondColor: 0xFF984ADD,
                 shadow: 0xFF06B6D5,
               ),
-              Spacer(),
+              const SizedBox(height: 24),
             ],
+            ),
           ),
         ),
         bottomNavigationBar: BottomNavBar(
