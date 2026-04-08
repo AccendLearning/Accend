@@ -46,8 +46,8 @@ class PhonemeRepo(ABC):
         - rows: List of dicts representing rows to upsert
         """
 
-      @abstractmethod
-      async def get_cached_overall_accuracy(self, user_id: str) -> float | None:
+    @abstractmethod
+    async def get_cached_overall_accuracy(self, user_id: str) -> float | None:
         """
         Fetch precomputed overall_accuracy from user_stats for a user.
 
@@ -56,8 +56,8 @@ class PhonemeRepo(ABC):
         - None when no user_stats row or value exists
         """
 
-      @abstractmethod
-      async def upsert_cached_overall_accuracy(self, user_id: str, overall_accuracy: float) -> None:
+    @abstractmethod
+    async def upsert_cached_overall_accuracy(self, user_id: str, overall_accuracy: float) -> None:
         """
         Persist precomputed overall_accuracy into user_stats.
         """
