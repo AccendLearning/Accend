@@ -53,7 +53,8 @@ class _HomePageState extends State<HomePage> {
               children: [
               HomeTopBar(
                 name: _controller.displayName,
-                imagePath: 'assets/images/profile.png',
+                imagePath: _controller.profileImageUrl ?? 'assets/images/profile.png',
+                isNetworkImage: _controller.profileImageUrl != null,
               ),
               const SizedBox(height: 20),
               if (_controller.isLoading)
