@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../../app/constants.dart';
 import '../../../app/routes.dart' as routes;
 import '../../../common/widgets/colored_button.dart';
-import '../../../common/widgets/bottom_nav_bar.dart';
 import '../controllers/group_session_controller.dart';
 
 class GroupSessionSelectPage extends StatefulWidget {
@@ -14,20 +13,6 @@ class GroupSessionSelectPage extends StatefulWidget {
 }
 
 class _GroupSessionSelectPageState extends State<GroupSessionSelectPage> {
-  void _onNavTap(int index) {
-    switch (index) {
-      case 0:
-        Navigator.of(context).pushReplacementNamed(routes.AppRoutes.social);
-        break;
-      case 1:
-        Navigator.of(context).pushReplacementNamed(routes.AppRoutes.home);
-        break;
-      case 2:
-        Navigator.of(context).pushReplacementNamed(routes.AppRoutes.profile);
-        break;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -122,10 +107,6 @@ class _GroupSessionSelectPageState extends State<GroupSessionSelectPage> {
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: BottomNavBar(
-        selectedIndex: null,
-        onDestinationSelected: _onNavTap,
       ),
     );
   }
