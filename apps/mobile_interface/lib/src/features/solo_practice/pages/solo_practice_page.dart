@@ -334,8 +334,8 @@ class _SoloPracticePageState extends State<SoloPracticePage> with WidgetsBinding
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Container(
-                                        width: 300,
-                                        padding: const EdgeInsets.all(AppSpacing.lg),
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.all(AppSpacing.xl),
                                         decoration: BoxDecoration(
                                           color: AppColors.surface,
                                           borderRadius: BorderRadius.circular(AppRadii.lg),
@@ -551,32 +551,11 @@ class _SoloPracticePageState extends State<SoloPracticePage> with WidgetsBinding
                     const SizedBox(width: AppSpacing.sm),
                   ],
 
-                  Container(
-                    width: 96,
-                    height: 96,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: _controller.micStateIndex == 1
-                              ? AppColors.failure.withOpacity(0.4)
-                              : AppColors.accent.withOpacity(0.3),
-                          blurRadius: 20,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                    alignment: Alignment.center,
-                    child: _controller.micStateIndex == 2
-                        ? IconButton(
-                            iconSize: 56,
-                            icon: const Icon(Icons.play_arrow, color: AppColors.primaryBg),
-                            onPressed: _playRecording,
-                          )
-                        : Microphone(
-                            onRecordingStarted: _onRecordingStarted,
-                            onRecordingStopped: _onRecordingStopped,
-                          ),
+                  _AnimatedMicButton(
+                    micStateIndex: _controller.micStateIndex,
+                    onPlayRecording: _playRecording,
+                    onRecordingStarted: _onRecordingStarted,
+                    onRecordingStopped: _onRecordingStopped,
                   ),
 
                   if (showRetrySubmit) ...[
@@ -616,6 +595,142 @@ class _SoloPracticePageState extends State<SoloPracticePage> with WidgetsBinding
           ],
         ),
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Animated mic / stop / play button with pulsing glow
+// ---------------------------------------------------------------------------
+
+class _AnimatedMicButton extends StatefulWidget {
+  const _AnimatedMicButton({
+    required this.micStateIndex,
+    required this.onPlayRecording,
+    required this.onRecordingStarted,
+    required this.onRecordingStopped,
+  });
+
+  final int micStateIndex;
+  final VoidCallback onPlayRecording;
+  final VoidCallback onRecordingStarted;
+  final ValueChanged<String> onRecordingStopped;
+
+  @override
+  State<_AnimatedMicButton> createState() => _AnimatedMicButtonState();
+}
+
+class _AnimatedMicButtonState extends State<_AnimatedMicButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    if (widget.micStateIndex == 1) _pulse.repeat(reverse: true);
+  }
+
+  @override
+  void didUpdateWidget(_AnimatedMicButton old) {
+    super.didUpdateWidget(old);
+    if (widget.micStateIndex == 1 && old.micStateIndex != 1) {
+      _pulse.repeat(reverse: true);
+    } else if (widget.micStateIndex != 1 && old.micStateIndex == 1) {
+      _pulse.animateTo(0, duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut);
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isRecording = widget.micStateIndex == 1;
+    final isPlayback = widget.micStateIndex == 2;
+    final glowColor = isRecording ? AppColors.failure : AppColors.accent;
+
+    return AnimatedBuilder(
+      animation: _pulse,
+      builder: (context, _) {
+        final glowScale = 1.0 + _pulse.value * 0.18;
+        final glowOpacity = isRecording
+            ? 0.22 + _pulse.value * 0.18
+            : 0.22;
+
+        return SizedBox(
+          width: 128,
+          height: 128,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Pulsing glow ring — scale driven by animation when recording.
+              Transform.scale(
+                scale: isRecording ? glowScale : 1.0,
+                child: Container(
+                  width: 128,
+                  height: 128,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: glowColor.withOpacity(glowOpacity),
+                        blurRadius: 32,
+                        spreadRadius: 4,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Button surface — transitions smoothly between states.
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOut,
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isRecording
+                      ? AppColors.failure.withOpacity(0.12)
+                      : AppColors.surface,
+                  border: Border.all(
+                    color: isRecording
+                        ? AppColors.failure.withOpacity(0.65)
+                        : AppColors.accent.withOpacity(0.5),
+                    width: 1.5,
+                  ),
+                ),
+                child: isPlayback
+                    ? IconButton(
+                        iconSize: 44,
+                        padding: EdgeInsets.zero,
+                        icon: const Icon(
+                          Icons.play_arrow_rounded,
+                          color: AppColors.accent,
+                        ),
+                        onPressed: widget.onPlayRecording,
+                        tooltip: 'Play recording',
+                      )
+                    : Microphone(
+                        idleColor: AppColors.accent,
+                        recordingColor: AppColors.failure,
+                        iconSize: 40,
+                        onRecordingStarted: widget.onRecordingStarted,
+                        onRecordingStopped: widget.onRecordingStopped,
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
