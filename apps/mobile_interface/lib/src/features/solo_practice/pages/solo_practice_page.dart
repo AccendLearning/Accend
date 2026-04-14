@@ -11,6 +11,7 @@ import '../../../common/widgets/microphone.dart';
 import '../../courses/models/lesson.dart';
 import '../controllers/solo_practice_controller.dart';
 import '../widgets/feedback_card.dart';
+import '../widgets/interactive_feedback_sentence.dart';
 import 'practice_results_page.dart';
 
 // ---------------------------------------------------------------------------
@@ -235,6 +236,12 @@ class _SoloPracticePageState extends State<SoloPracticePage> with WidgetsBinding
       letterSpacing: 0.5,
     );
 
+    final scoreStyle = GoogleFonts.inter(
+      color: AppColors.accent,
+      fontSize: 20,
+      fontWeight: FontWeight.w700,
+    );
+
     return Scaffold(
       backgroundColor: AppColors.primaryBg,
       body: SafeArea(
@@ -322,10 +329,10 @@ class _SoloPracticePageState extends State<SoloPracticePage> with WidgetsBinding
                                 ],
                               )
                             : _controller.currentFeedback == null
+                                // ── Pre-submission: plain sentence card ───────
                                 ? Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      // Prompt card
                                       Container(
                                         width: 300,
                                         padding: const EdgeInsets.all(AppSpacing.lg),
@@ -379,12 +386,131 @@ class _SoloPracticePageState extends State<SoloPracticePage> with WidgetsBinding
                                       ),
                                     ],
                                   )
+                                // ── Post-submission: in-place color-coded sentence ─
                                 : Padding(
                                     padding: const EdgeInsets.only(top: AppSpacing.md),
-                                    child: FeedbackCard(
-                                      feedback: _controller.currentFeedback!,
-                                      onRetry: _onFeedbackRetry,
-                                      onNext: _advanceToNextCard,
+                                    child: Container(
+                                      width: double.infinity,
+                                      constraints: const BoxConstraints(maxWidth: 360),
+                                      padding: const EdgeInsets.all(AppSpacing.lg),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.surface,
+                                        borderRadius: BorderRadius.circular(AppRadii.lg),
+                                        border: Border.all(color: AppColors.border),
+                                      ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                                        children: [
+                                          // Color-coded sentence in place of the plain text.
+                                          InteractiveFeedbackSentence(
+                                            referenceText: currentItem.text,
+                                            feedback: _controller.currentFeedback!,
+                                            textStyle: promptStyle,
+                                          ),
+                                          if (currentItem.ipa != null) ...[
+                                            const SizedBox(height: 12),
+                                            Text(
+                                              currentItem.ipa!,
+                                              textAlign: TextAlign.center,
+                                              style: ipaStyle,
+                                            ),
+                                          ],
+                                          if (currentItem.hint != null) ...[
+                                            const SizedBox(height: 8),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 10,
+                                                vertical: 6,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.primaryBg,
+                                                borderRadius: BorderRadius.circular(AppRadii.sm),
+                                              ),
+                                              child: Text(
+                                                currentItem.hint!,
+                                                textAlign: TextAlign.center,
+                                                style: bodyStyle.copyWith(fontSize: 12),
+                                              ),
+                                            ),
+                                          ],
+                                          const SizedBox(height: AppSpacing.sm),
+                                          Text(
+                                            'Tap any word for phoneme feedback',
+                                            textAlign: TextAlign.center,
+                                            style: bodyStyle.copyWith(fontSize: 12),
+                                          ),
+                                          const SizedBox(height: AppSpacing.md),
+                                          // Overall scores row.
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                            children: [
+                                              ScoreChip(
+                                                label: 'Accuracy',
+                                                score: _controller.currentFeedback!.accuracyScore,
+                                                style: scoreStyle,
+                                                bodyStyle: bodyStyle,
+                                              ),
+                                              ScoreChip(
+                                                label: 'Fluency',
+                                                score: _controller.currentFeedback!.fluencyScore,
+                                                style: scoreStyle,
+                                                bodyStyle: bodyStyle,
+                                              ),
+                                              ScoreChip(
+                                                label: 'Complete',
+                                                score: _controller.currentFeedback!.completenessScore,
+                                                style: scoreStyle,
+                                                bodyStyle: bodyStyle,
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: AppSpacing.lg),
+                                          // Try Again / Next actions.
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: ElevatedButton(
+                                                  onPressed: _onFeedbackRetry,
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: AppColors.surface,
+                                                    foregroundColor: AppColors.textPrimary,
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius: BorderRadius.circular(AppRadii.md),
+                                                      side: const BorderSide(color: AppColors.border),
+                                                    ),
+                                                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                                                  ),
+                                                  child: Text(
+                                                    'Try Again',
+                                                    style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary).copyWith(inherit: false),
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: AppSpacing.sm),
+                                              Expanded(
+                                                child: ElevatedButton(
+                                                  onPressed: _advanceToNextCard,
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: AppColors.action,
+                                                    foregroundColor: const Color(0xFF101828),
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius: BorderRadius.circular(AppRadii.md),
+                                                    ),
+                                                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                                                  ),
+                                                  child: Text(
+                                                    _controller.currentCardIndex == _controller.totalCards - 1
+                                                        ? 'Finish'
+                                                        : 'Next',
+                                                    style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF101828)).copyWith(inherit: false),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                       ),

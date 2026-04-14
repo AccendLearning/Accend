@@ -25,6 +25,143 @@ Color userSaidPhonemeColor(PhonemeFeedback p) {
   return c == AppColors.success ? AppColors.action : c;
 }
 
+/// Shows the phoneme detail popup for a single [symbol].
+void _showPhonemeDetailDialog({
+  required BuildContext parentContext,
+  required String symbol,
+  double? accuracy,
+  Color? chipColor,
+}) {
+  showDialog<void>(
+    context: parentContext,
+    builder: (_) => PhonemeDetailDialog(
+      symbol: symbol,
+      accuracy: accuracy,
+      chipColor: chipColor ?? AppColors.textPrimary,
+    ),
+  );
+}
+
+/// Shows the word-level phoneme breakdown dialog for [word].
+/// Can be called from any widget that has a [BuildContext].
+void showWordPhonemeDialog(BuildContext context, WordFeedback word) {
+  final headingStyle = GoogleFonts.inter(
+    color: AppColors.textPrimary,
+    fontSize: 18,
+    fontWeight: FontWeight.w700,
+  );
+  final bodyStyle = GoogleFonts.publicSans(
+    color: AppColors.textSecondary,
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+  );
+
+  showDialog<void>(
+    context: context,
+    builder: (dialogContext) {
+      return AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text(word.text, style: headingStyle),
+        content: word.phonemes.isEmpty
+            ? Text(
+                'No phoneme data available for this word.',
+                style: bodyStyle,
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'You said:',
+                    style: bodyStyle.copyWith(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final p in word.phonemes)
+                        ActionChip(
+                          onPressed: () => _showPhonemeDetailDialog(
+                            parentContext: dialogContext,
+                            symbol: p.userSaid ?? p.symbol,
+                            accuracy: p.accuracy,
+                            chipColor: userSaidPhonemeColor(p),
+                          ),
+                          label: Text(
+                            p.userSaid ?? p.symbol,
+                            style: bodyStyle.copyWith(
+                              color: userSaidPhonemeColor(p),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          backgroundColor: AppColors.inputFill,
+                          shape: const StadiumBorder(
+                            side: BorderSide(color: AppColors.border),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Should be:',
+                    style: bodyStyle.copyWith(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final p in word.phonemes)
+                        ActionChip(
+                          onPressed: () => _showPhonemeDetailDialog(
+                            parentContext: dialogContext,
+                            symbol: p.symbol,
+                            chipColor: AppColors.textPrimary,
+                          ),
+                          label: Text(
+                            p.symbol,
+                            style: bodyStyle.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          backgroundColor: AppColors.inputFill,
+                          shape: const StadiumBorder(
+                            side: BorderSide(color: AppColors.border),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Tap any phoneme for how to pronounce it.',
+                    style: bodyStyle.copyWith(
+                      fontSize: 11,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
 /// Inline feedback card shown after the user submits a recording.
 /// Displays word-level and phoneme-level scores; tap a word to see phoneme breakdown.
 class FeedbackCard extends StatelessWidget {
@@ -58,135 +195,6 @@ class FeedbackCard extends StatelessWidget {
       fontWeight: FontWeight.w700,
     );
 
-    /// Show a phoneme-detail popup for a single phoneme [symbol].
-    /// Displays the symbol, articulation instruction, accuracy score, and a
-    /// play button that streams the reference audio from Supabase Storage.
-    void showPhonemeDetailDialog({
-      required BuildContext parentContext,
-      required String symbol,
-      double? accuracy,
-      Color? chipColor,
-    }) {
-      showDialog<void>(
-        context: parentContext,
-        builder: (_) => PhonemeDetailDialog(
-          symbol: symbol,
-          accuracy: accuracy,
-          chipColor: chipColor ?? AppColors.textPrimary,
-        ),
-      );
-    }
-
-    /// Show a popup listing phonemes for a given [word]: top row = what the
-    /// user said (detected), bottom row = what they should have said (reference).
-    /// Tap any phoneme chip to see its full articulation instruction.
-    void showPhonemeDialog(WordFeedback word) {
-      showDialog<void>(
-        context: context,
-        builder: (dialogContext) {
-          return AlertDialog(
-            backgroundColor: AppColors.surface,
-            title: Text(
-              word.text,
-              style: headingStyle,
-            ),
-            content: word.phonemes.isEmpty
-                ? Text(
-                    'No phoneme data available for this word.',
-                    style: bodyStyle,
-                  )
-                : Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'You said:',
-                        style: bodyStyle.copyWith(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          for (final p in word.phonemes)
-                            ActionChip(
-                              onPressed: () => showPhonemeDetailDialog(
-                                parentContext: dialogContext,
-                                symbol: p.userSaid ?? p.symbol,
-                                accuracy: p.accuracy,
-                                chipColor: userSaidPhonemeColor(p),
-                              ),
-                              label: Text(
-                                p.userSaid ?? p.symbol,
-                                style: bodyStyle.copyWith(
-                                  color: userSaidPhonemeColor(p),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              backgroundColor: AppColors.inputFill,
-                              shape: StadiumBorder(
-                                side: BorderSide(color: AppColors.border),
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Should be:',
-                        style: bodyStyle.copyWith(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          for (final p in word.phonemes)
-                            ActionChip(
-                              onPressed: () => showPhonemeDetailDialog(
-                                parentContext: dialogContext,
-                                symbol: p.symbol,
-                                chipColor: AppColors.textPrimary,
-                              ),
-                              label: Text(
-                                p.symbol,
-                                style: bodyStyle.copyWith(
-                                  color: AppColors.textPrimary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              backgroundColor: AppColors.inputFill,
-                              shape: StadiumBorder(
-                                side: BorderSide(color: AppColors.border),
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Tap any phoneme for how to pronounce it.',
-                        style: bodyStyle.copyWith(fontSize: 11, color: AppColors.textSecondary),
-                      ),
-                    ],
-                  ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(),
-                child: const Text('Close'),
-              ),
-            ],
-          );
-        },
-      );
-    }
-
     return Container(
       width: double.infinity,
       constraints: const BoxConstraints(maxWidth: 360),
@@ -218,7 +226,7 @@ class FeedbackCard extends StatelessWidget {
               children: [
                 for (final w in feedback.words)
                   ActionChip(
-                    onPressed: () => showPhonemeDialog(w),
+                    onPressed: () => showWordPhonemeDialog(context, w),
                     backgroundColor: AppColors.inputFill,
                     shape: StadiumBorder(
                       side: BorderSide(color: AppColors.border),
