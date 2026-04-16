@@ -136,6 +136,34 @@ class _SoloPracticePageState extends State<SoloPracticePage>
     setState(() => _controller.retry());
   }
 
+  /// Called when the microphone widget auto-stops after the recording time limit.
+  void _onRecordingAutoStopped() {
+    _clearRecording();
+    setState(() => _controller.retry());
+    showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Dismiss',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 280),
+      transitionBuilder: (ctx, animation, _, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutQuart,
+          reverseCurve: Curves.easeInQuart,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.88, end: 1.0).animate(curved),
+            child: child,
+          ),
+        );
+      },
+      pageBuilder: (ctx, _, __) => const _TimeUpDialog(),
+    );
+  }
+
   /// On Submit: load audio, call controller to fetch feedback and set state, then rebuild.
   Future<void> _onSubmitPressed() async {
     if (_recordingPath == null) {
@@ -635,6 +663,7 @@ class _SoloPracticePageState extends State<SoloPracticePage>
                       onPlayRecording: _playRecording,
                       onRecordingStarted: _onRecordingStarted,
                       onRecordingStopped: _onRecordingStopped,
+                      onAutoStopped: _onRecordingAutoStopped,
                     ),
 
                     const SizedBox(width: AppSpacing.sm),
@@ -696,20 +725,23 @@ class _AnimatedMicButton extends StatefulWidget {
     required this.onPlayRecording,
     required this.onRecordingStarted,
     required this.onRecordingStopped,
+    this.onAutoStopped,
   });
 
   final int micStateIndex;
   final VoidCallback onPlayRecording;
   final VoidCallback onRecordingStarted;
   final ValueChanged<String> onRecordingStopped;
+  final VoidCallback? onAutoStopped;
 
   @override
   State<_AnimatedMicButton> createState() => _AnimatedMicButtonState();
 }
 
 class _AnimatedMicButtonState extends State<_AnimatedMicButton>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _pulse;
+  late final AnimationController _recordingProgress;
 
   @override
   void initState() {
@@ -717,6 +749,10 @@ class _AnimatedMicButtonState extends State<_AnimatedMicButton>
     _pulse = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
+    );
+    _recordingProgress = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
     );
     if (widget.micStateIndex == 1) _pulse.repeat(reverse: true);
   }
@@ -735,6 +771,7 @@ class _AnimatedMicButtonState extends State<_AnimatedMicButton>
   @override
   void dispose() {
     _pulse.dispose();
+    _recordingProgress.dispose();
     super.dispose();
   }
 
@@ -758,6 +795,22 @@ class _AnimatedMicButtonState extends State<_AnimatedMicButton>
           child: Stack(
             alignment: Alignment.center,
             children: [
+              // Countdown arc — surrounds the full button while recording.
+              if (isRecording)
+                SizedBox(
+                  width: 128,
+                  height: 128,
+                  child: AnimatedBuilder(
+                    animation: _recordingProgress,
+                    builder: (_, __) => CircularProgressIndicator(
+                      value: 1.0 - _recordingProgress.value,
+                      strokeWidth: 3,
+                      color: AppColors.failure,
+                      backgroundColor: AppColors.failure.withOpacity(0.2),
+                    ),
+                  ),
+                ),
+
               // Pulsing glow ring — scale driven by animation when recording.
               Transform.scale(
                 scale: isRecording ? glowScale : 1.0,
@@ -812,12 +865,98 @@ class _AnimatedMicButtonState extends State<_AnimatedMicButton>
                         iconSize: 52,
                         onRecordingStarted: widget.onRecordingStarted,
                         onRecordingStopped: widget.onRecordingStopped,
+                        onAutoStopped: widget.onAutoStopped,
+                        progressController: _recordingProgress,
                       ),
               ),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Time's up dialog with animated icon entrance
+// ---------------------------------------------------------------------------
+
+class _TimeUpDialog extends StatefulWidget {
+  const _TimeUpDialog();
+
+  @override
+  State<_TimeUpDialog> createState() => _TimeUpDialogState();
+}
+
+class _TimeUpDialogState extends State<_TimeUpDialog>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _iconCtrl;
+  late final Animation<double> _iconScale;
+
+  @override
+  void initState() {
+    super.initState();
+    _iconCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 420),
+    );
+    _iconScale = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _iconCtrl, curve: Curves.easeOutQuart),
+    );
+    // Slight delay so the dialog entrance finishes before the icon pops in.
+    Future.delayed(const Duration(milliseconds: 120), () {
+      if (mounted) _iconCtrl.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _iconCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadii.lg),
+        side: const BorderSide(color: AppColors.border),
+      ),
+      icon: ScaleTransition(
+        scale: _iconScale,
+        child: const Icon(
+          Icons.timer_off_rounded,
+          color: AppColors.failure,
+          size: 32,
+        ),
+      ),
+      title: Text(
+        "Time's up",
+        style: GoogleFonts.inter(
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          color: AppColors.textPrimary,
+        ),
+      ),
+      content: Text(
+        "Recording limit reached. Tap the mic to try again.",
+        style: GoogleFonts.publicSans(
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+          color: AppColors.textSecondary,
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          style: TextButton.styleFrom(foregroundColor: AppColors.accent),
+          child: Text(
+            'Got it',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
     );
   }
 }
