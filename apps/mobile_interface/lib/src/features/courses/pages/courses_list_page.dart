@@ -1,6 +1,7 @@
 // lib/src/features/courses/pages/courses_list_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../../../app/constants.dart';
@@ -58,27 +59,27 @@ class _CoursesListPageState extends State<CoursesListPage> {
   }
 
   Future<void> _confirmDelete(Course course) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showGeneralDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete course?'),
-        content: Text(
-          '"${course.title}" will be permanently removed. This cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+      barrierDismissible: true,
+      barrierLabel: 'Dismiss',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 280),
+      transitionBuilder: (ctx, animation, _, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutQuart,
+          reverseCurve: Curves.easeInQuart,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.88, end: 1.0).animate(curved),
+            child: child,
           ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.failure,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+        );
+      },
+      pageBuilder: (ctx, _, __) => _DeleteCourseDialog(courseTitle: course.title),
     );
 
     if (confirmed != true || !mounted) return;
@@ -353,6 +354,184 @@ class _ErrorState extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Delete course confirmation dialog
+// ---------------------------------------------------------------------------
+
+class _DeleteCourseDialog extends StatefulWidget {
+  const _DeleteCourseDialog({required this.courseTitle});
+
+  final String courseTitle;
+
+  @override
+  State<_DeleteCourseDialog> createState() => _DeleteCourseDialogState();
+}
+
+class _DeleteCourseDialogState extends State<_DeleteCourseDialog>
+    with TickerProviderStateMixin {
+  // Icon pops in with a scale entrance after the dialog settles.
+  late final AnimationController _iconCtrl;
+  late final Animation<double> _iconScale;
+
+  // Content stagger: title → body → actions fade+slide up sequentially.
+  late final AnimationController _contentCtrl;
+  late final Animation<double> _titleFade;
+  late final Animation<Offset> _titleSlide;
+  late final Animation<double> _bodyFade;
+  late final Animation<Offset> _bodySlide;
+  late final Animation<double> _actionsFade;
+  late final Animation<Offset> _actionsSlide;
+
+  static const _slideBegin = Offset(0, 0.28);
+
+  @override
+  void initState() {
+    super.initState();
+
+    _iconCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 420),
+    );
+    _iconScale = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _iconCtrl, curve: Curves.easeOutQuart),
+    );
+
+    _contentCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+
+    // Title: first to appear.
+    _titleFade = CurvedAnimation(
+      parent: _contentCtrl,
+      curve: const Interval(0.0, 0.55, curve: Curves.easeOut),
+    );
+    _titleSlide = Tween<Offset>(begin: _slideBegin, end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _contentCtrl,
+        curve: const Interval(0.0, 0.60, curve: Curves.easeOutQuart),
+      ),
+    );
+
+    // Body: slightly delayed behind title.
+    _bodyFade = CurvedAnimation(
+      parent: _contentCtrl,
+      curve: const Interval(0.18, 0.72, curve: Curves.easeOut),
+    );
+    _bodySlide = Tween<Offset>(begin: _slideBegin, end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _contentCtrl,
+        curve: const Interval(0.18, 0.75, curve: Curves.easeOutQuart),
+      ),
+    );
+
+    // Actions: last to appear.
+    _actionsFade = CurvedAnimation(
+      parent: _contentCtrl,
+      curve: const Interval(0.38, 0.90, curve: Curves.easeOut),
+    );
+    _actionsSlide = Tween<Offset>(begin: _slideBegin, end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _contentCtrl,
+        curve: const Interval(0.38, 0.92, curve: Curves.easeOutQuart),
+      ),
+    );
+
+    // Icon starts after dialog entrance settles; content stagger begins slightly
+    // earlier so both sequences complete around the same time.
+    Future.delayed(const Duration(milliseconds: 120), () {
+      if (mounted) _iconCtrl.forward();
+    });
+    Future.delayed(const Duration(milliseconds: 80), () {
+      if (mounted) _contentCtrl.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _iconCtrl.dispose();
+    _contentCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadii.lg),
+        side: const BorderSide(color: AppColors.border),
+      ),
+      icon: ScaleTransition(
+        scale: _iconScale,
+        child: const Icon(
+          Icons.delete_forever_rounded,
+          color: AppColors.failure,
+          size: 32,
+        ),
+      ),
+      title: FadeTransition(
+        opacity: _titleFade,
+        child: SlideTransition(
+          position: _titleSlide,
+          child: Text(
+            'Delete course?',
+            style: GoogleFonts.inter(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ),
+      ),
+      content: FadeTransition(
+        opacity: _bodyFade,
+        child: SlideTransition(
+          position: _bodySlide,
+          child: Text(
+            '"${widget.courseTitle}" will be permanently removed. This cannot be undone.',
+            style: GoogleFonts.publicSans(
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        FadeTransition(
+          opacity: _actionsFade,
+          child: SlideTransition(
+            position: _actionsSlide,
+            child: TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ),
+        FadeTransition(
+          opacity: _actionsFade,
+          child: SlideTransition(
+            position: _actionsSlide,
+            child: TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(foregroundColor: AppColors.failure),
+              child: Text(
+                'Delete',
+                style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
