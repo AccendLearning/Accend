@@ -140,20 +140,27 @@ class _SoloPracticePageState extends State<SoloPracticePage>
   void _onRecordingAutoStopped() {
     _clearRecording();
     setState(() => _controller.retry());
-    showDialog<void>(
+    showGeneralDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Time's up"),
-        content: const Text(
-          "The 10-second limit was reached. Tap the mic to try again.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Got it'),
+      barrierDismissible: true,
+      barrierLabel: 'Dismiss',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 280),
+      transitionBuilder: (ctx, animation, _, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutQuart,
+          reverseCurve: Curves.easeInQuart,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.88, end: 1.0).animate(curved),
+            child: child,
           ),
-        ],
-      ),
+        );
+      },
+      pageBuilder: (ctx, _, __) => const _TimeUpDialog(),
     );
   }
 
@@ -866,6 +873,90 @@ class _AnimatedMicButtonState extends State<_AnimatedMicButton>
           ),
         );
       },
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Time's up dialog with animated icon entrance
+// ---------------------------------------------------------------------------
+
+class _TimeUpDialog extends StatefulWidget {
+  const _TimeUpDialog();
+
+  @override
+  State<_TimeUpDialog> createState() => _TimeUpDialogState();
+}
+
+class _TimeUpDialogState extends State<_TimeUpDialog>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _iconCtrl;
+  late final Animation<double> _iconScale;
+
+  @override
+  void initState() {
+    super.initState();
+    _iconCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 420),
+    );
+    _iconScale = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _iconCtrl, curve: Curves.easeOutQuart),
+    );
+    // Slight delay so the dialog entrance finishes before the icon pops in.
+    Future.delayed(const Duration(milliseconds: 120), () {
+      if (mounted) _iconCtrl.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _iconCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadii.lg),
+        side: const BorderSide(color: AppColors.border),
+      ),
+      icon: ScaleTransition(
+        scale: _iconScale,
+        child: const Icon(
+          Icons.timer_off_rounded,
+          color: AppColors.failure,
+          size: 32,
+        ),
+      ),
+      title: Text(
+        "Time's up",
+        style: GoogleFonts.inter(
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          color: AppColors.textPrimary,
+        ),
+      ),
+      content: Text(
+        "Recording limit reached. Tap the mic to try again.",
+        style: GoogleFonts.publicSans(
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+          color: AppColors.textSecondary,
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          style: TextButton.styleFrom(foregroundColor: AppColors.accent),
+          child: Text(
+            'Got it',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
     );
   }
 }
