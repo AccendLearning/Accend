@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthService {
@@ -74,4 +76,42 @@ class AuthService {
   }
 
   Future<void> signOut() => _client.auth.signOut();
+
+  Future<void> signInWithGoogle({
+    required String webClientId,
+    required String iosClientId,
+  }) async {
+    final googleSignIn = GoogleSignIn.instance;
+    await googleSignIn.initialize(
+      serverClientId: webClientId,
+      clientId: iosClientId,
+    );
+
+    debugPrint('Google sign-in: attempting lightweight auth');
+    final lightweightUser = await googleSignIn.attemptLightweightAuthentication();
+    debugPrint('Google sign-in: lightweight result = $lightweightUser');
+    final googleUser = lightweightUser ?? await googleSignIn.authenticate();
+    debugPrint('Google sign-in: got user = ${googleUser.email}');
+
+    const scopes = ['email', 'profile'];
+    debugPrint('Google sign-in: requesting authorization');
+    final authorization =
+        await googleUser.authorizationClient.authorizationForScopes(scopes) ??
+        await googleUser.authorizationClient.authorizeScopes(scopes);
+    debugPrint('Google sign-in: got authorization, accessToken = ${authorization.accessToken != null}');
+
+    final idToken = googleUser.authentication.idToken;
+    debugPrint('Google sign-in: idToken = ${idToken != null ? "present" : "null"}');
+    if (idToken == null) {
+      throw const AuthException('No ID token received from Google.');
+    }
+
+    debugPrint('Google sign-in: calling signInWithIdToken');
+    await _client.auth.signInWithIdToken(
+      provider: OAuthProvider.google,
+      idToken: idToken,
+      accessToken: authorization.accessToken,
+    );
+    debugPrint('Google sign-in: signInWithIdToken complete');
+  }
 }

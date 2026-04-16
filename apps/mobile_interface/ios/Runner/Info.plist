@@ -78,6 +78,14 @@
 				<string>accend</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.527319499403-d2fhcadmkjofdjjrp7pfkkp6tosfahn9</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>

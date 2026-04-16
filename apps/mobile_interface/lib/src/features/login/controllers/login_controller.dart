@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import '../../../app/routes.dart';
 import '../../../common/services/api_client.dart';
@@ -119,10 +120,32 @@ class LoginController extends ChangeNotifier {
     );
   }
 
-  void signInWithGoogle(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Google sign-in is not wired yet.')),
-    );
+  Future<void> signInWithGoogle(BuildContext context) async {
+    isLoading = true;
+    errorMessage = null;
+    notifyListeners();
+
+    try {
+      await auth.signInWithGoogle(
+        webClientId: dotenv.env['GOOGLE_WEB_CLIENT_ID'] ?? '',
+        iosClientId: dotenv.env['GOOGLE_IOS_CLIENT_ID'] ?? '',
+      );
+      home.load();
+      final route = await onboarding.getPostLoginRoute();
+      if (!context.mounted) return;
+      Navigator.pushReplacementNamed(context, route);
+    } on Exception catch (e) {
+      final msg = e.toString();
+      debugPrint('Google sign-in error: $msg');
+      if (msg.contains('cancelled') || msg.contains('canceled') || msg.contains('sign_in_canceled')) {
+        errorMessage = 'Google sign-in was cancelled.';
+      } else {
+        errorMessage = 'Google sign-in failed. Please try again.';
+      }
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
   }
 
   void signInWithApple(BuildContext context) {
