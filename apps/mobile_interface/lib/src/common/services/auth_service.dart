@@ -114,6 +114,7 @@ class AuthService {
     await _client.auth.signInWithOAuth(
       OAuthProvider.google,
       redirectTo: 'accend://login-callback',
+      queryParams: {'prompt': 'select_account'},
     );
   }
 }
