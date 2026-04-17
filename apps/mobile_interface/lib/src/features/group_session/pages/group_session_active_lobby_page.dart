@@ -5,8 +5,10 @@ import 'package:livekit_client/livekit_client.dart';
 import 'package:provider/provider.dart';
 
 import '../../../app/constants.dart';
+import '../../../app/routes.dart';
 import '../../../common/widgets/primary_button.dart';
 import '../controllers/group_session_controller.dart';
+import '../models/private_lobby.dart';
 import '../widgets/quit_group_session_back_button.dart';
 
 class GroupSessionActiveLobbyPage extends StatefulWidget {
@@ -146,26 +148,33 @@ class _GroupSessionActiveLobbyPageState extends State<GroupSessionActiveLobbyPag
     final ctrl = context.read<GroupSessionController>();
     final kind = ModalRoute.of(context)?.settings.arguments as String? ?? 'private';
 
+    // Snapshot participants before leave — the controller clears privateLobby
+    // during leavePublicLobby() / deletePrivateLobbyRow().
+    final List<PrivateLobby> participants = List<PrivateLobby>.from(ctrl.privateLobby);
+
     await _disconnectVoice();
 
     bool ok;
     if (kind == 'public') {
       ok = await ctrl.leavePublicLobby();
     } else {
-      if (ctrl.privateLobby.isEmpty) {
-        ok = false;
-      } else {
-        ok = await ctrl.deletePrivateLobbyRow(ctrl.privateLobby.first.id);
-      }
+      ok = await ctrl.leaveLobby();
     }
 
     if (!context.mounted) return;
-    final msg = ok ? 'Left lobby' : 'Failed to leave lobby';
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
-    if (ok) {
-      Navigator.maybePop(context);
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to leave lobby')),
+      );
+      return;
     }
+
+    Navigator.pushReplacementNamed(
+      context,
+      AppRoutes.groupSessionPostSession,
+      arguments: participants,
+    );
   }
 
   @override

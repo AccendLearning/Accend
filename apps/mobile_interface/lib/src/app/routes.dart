@@ -23,6 +23,8 @@ import '../features/group_session/pages/group_session_private_create_page.dart';
 import '../features/group_session/pages/group_session_private_join_page.dart';
 import '../features/group_session/pages/group_session_active_lobby_page.dart';
 import '../features/group_session/pages/group_session_public_match_page.dart';
+import '../features/group_session/pages/group_post_session_page.dart';
+import '../features/group_session/models/private_lobby.dart';
 
 class AppRoutes {
   static const login = '/login';
@@ -50,6 +52,7 @@ class AppRoutes {
   static const groupSessionPrivateJoin = '/group_session/private-join';
   static const groupSessionActiveLobby = '/group_session/active-lobby';
   static const groupSessionPublicMatch = '/group_session/public-match';
+  static const groupSessionPostSession = '/group_session/post-session';
 
   static Map<String, WidgetBuilder> get table => {
         login: (_) => const LoginPage(),
@@ -77,5 +80,10 @@ class AppRoutes {
         groupSessionPrivateJoin: (_) => const GroupSessionPrivateJoinPage(),
         groupSessionActiveLobby: (_) => const GroupSessionActiveLobbyPage(),
         groupSessionPublicMatch: (_) => const GroupSessionPublicMatchPage(),
+        groupSessionPostSession: (ctx) {
+          final args = ModalRoute.of(ctx)!.settings.arguments;
+          final participants = args is List<PrivateLobby> ? args : <PrivateLobby>[];
+          return GroupPostSessionPage(participants: participants);
+        },
       };
 }
