@@ -79,76 +79,79 @@ class _SkillAssessPageState extends State<SkillAssessPage> {
             vertical: AppSpacing.sm + 6,
           ),
           child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            OnboardingTopBar(
-              step: 1,
-              totalSteps: 5,
-              rightLabel: 'Skill Assessment',
-              showBack: true,
-              onBack: _onBack,
-            ),
-            const SizedBox(height: AppSpacing.sm),
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              OnboardingTopBar(
+                step: 1,
+                totalSteps: 6,
+                rightLabel: 'Skill Assessment',
+                showBack: true,
+                onBack: _onBack,
+              ),
+              const SizedBox(height: AppSpacing.sm),
 
-            const OnboardingProgressBar(step: 1, totalSteps: 5),
-            const SizedBox(height: AppSpacing.xl),
+              const OnboardingProgressBar(step: 1, totalSteps: 6),
+              const SizedBox(height: AppSpacing.xl),
 
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const OnboardingQuestionHeader(
-                      leadingText: 'What is your ',
-                      highlightedText: 'current level?',
-                      subheader: 'This helps us customize your learning path.',
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const OnboardingQuestionHeader(
+                        leadingText: 'What is your ',
+                        highlightedText: 'current level?',
+                        subheader:
+                            'This helps us customize your learning path.',
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
 
-                    LevelCard(
-                      tag: 'BEGINNER',
-                      title: 'Newbie',
-                      description: 'I know a few words or I am starting from scratch.',
-                      isSelected: _selectedLevel == SkillLevel.beginner,
-                      onTap: () => _selectLevel(SkillLevel.beginner),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
+                      LevelCard(
+                        tag: 'BEGINNER',
+                        title: 'Newbie',
+                        description:
+                            'I know a few words or I am starting from scratch.',
+                        isSelected: _selectedLevel == SkillLevel.beginner,
+                        onTap: () => _selectLevel(SkillLevel.beginner),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
 
-                    LevelCard(
-                      tag: 'INTERMEDIATE',
-                      title: 'Conversationalist',
-                      description:
-                          'I can hold basic conversations and understand common topics.',
-                      isSelected: _selectedLevel == SkillLevel.intermediate,
-                      onTap: () => _selectLevel(SkillLevel.intermediate),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
+                      LevelCard(
+                        tag: 'INTERMEDIATE',
+                        title: 'Conversationalist',
+                        description:
+                            'I can hold basic conversations and understand common topics.',
+                        isSelected: _selectedLevel == SkillLevel.intermediate,
+                        onTap: () => _selectLevel(SkillLevel.intermediate),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
 
-                    LevelCard(
-                      tag: 'ADVANCED',
-                      title: 'Fluent Speaker',
-                      description: 'I can speak fluently and understand complex topics.',
-                      isSelected: _selectedLevel == SkillLevel.advanced,
-                      onTap: () => _selectLevel(SkillLevel.advanced),
-                    ),
-                  ],
+                      LevelCard(
+                        tag: 'ADVANCED',
+                        title: 'Fluent Speaker',
+                        description:
+                            'I can speak fluently and understand complex topics.',
+                        isSelected: _selectedLevel == SkillLevel.advanced,
+                        onTap: () => _selectLevel(SkillLevel.advanced),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
 
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            SizedBox(
-              height: 56,
-              child: ElevatedButton(
-                onPressed: _selectedLevel == null ? null : _onContinue,
-                child: const Text('Continue'),
+              SizedBox(
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: _selectedLevel == null ? null : _onContinue,
+                  child: const Text('Continue'),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 }
@@ -214,22 +217,23 @@ class LevelCard extends StatelessWidget {
 
                     Text(
                       title,
-                      style: (Theme.of(context).textTheme.headlineMedium ??
-                              const TextStyle())
-                          .copyWith(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
-                      ),
+                      style:
+                          (Theme.of(context).textTheme.headlineMedium ??
+                                  const TextStyle())
+                              .copyWith(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textPrimary,
+                              ),
                     ),
                     const SizedBox(height: AppSpacing.sm),
 
                     Text(
                       description,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: AppColors.textSecondary,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),
@@ -243,8 +247,11 @@ class LevelCard extends StatelessWidget {
                   border: Border.all(color: const Color(0x7F334155)),
                 ),
                 child: isSelected
-                    ? const Icon(Icons.check,
-                        color: AppColors.primaryBg, size: 20)
+                    ? const Icon(
+                        Icons.check,
+                        color: AppColors.primaryBg,
+                        size: 20,
+                      )
                     : null,
               ),
             ],

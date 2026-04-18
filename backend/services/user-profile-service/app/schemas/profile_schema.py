@@ -117,6 +117,7 @@ class ProfileOnboardingUpdate(BaseModel):
     accent: str | None = None
     daily_pace: str | None = None
     skill_assess: str | None = None
+    focus_areas: str | None = None
     mark_complete: bool = False
 
 

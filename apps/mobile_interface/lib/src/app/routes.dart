@@ -5,6 +5,7 @@ import '../features/login/pages/reset_password_page.dart';
 
 import '../features/onboarding/pages/onboarding_user_info_page.dart';
 import '../features/onboarding/pages/learning_goal.dart';
+import '../features/onboarding/pages/focus_areas.dart';
 import '../features/onboarding/pages/daily_goal.dart';
 import '../features/onboarding/pages/feedback_tone.dart';
 import '../features/onboarding/pages/skill_assess.dart';
@@ -32,6 +33,7 @@ class AppRoutes {
 
   static const onboardingUserInfo = '/onboarding/user-info';
   static const onboardingLearningGoal = '/onboarding/learning-goal';
+  static const onboardingFocusAreas = '/onboarding/focus-areas';
   static const onboardingDailyGoal = '/onboarding/daily-goal';
   static const onboardingFeedbackTone = '/onboarding/feedback-tone';
   static const onboardingSkillAssess = '/onboarding/skill-assess';
@@ -58,36 +60,37 @@ class AppRoutes {
   static const resetPassword = '/reset-password';
 
   static Map<String, WidgetBuilder> get table => {
-        login: (_) => const LoginPage(),
+    login: (_) => const LoginPage(),
 
-        onboardingUserInfo: (_) => const OnboardingUserInfoPage(),
-        onboardingLearningGoal: (_) => const LearningGoalPage(),
-        onboardingDailyGoal: (_) => const DailyGoalPage(),
-        onboardingFeedbackTone: (_) => const FeedbackTonePage(),
-        onboardingSkillAssess: (_) => const SkillAssessPage(),
-        onboardingAccentSelection: (_) => const AccentSelectionPage(),
-        onboardingComplete: (_) => const OnboardingCompletePage(),
+    onboardingUserInfo: (_) => const OnboardingUserInfoPage(),
+    onboardingLearningGoal: (_) => const LearningGoalPage(),
+    onboardingFocusAreas: (_) => const FocusAreasPage(),
+    onboardingDailyGoal: (_) => const DailyGoalPage(),
+    onboardingFeedbackTone: (_) => const FeedbackTonePage(),
+    onboardingSkillAssess: (_) => const SkillAssessPage(),
+    onboardingAccentSelection: (_) => const AccentSelectionPage(),
+    onboardingComplete: (_) => const OnboardingCompletePage(),
 
-        courses: (_) => const CoursesListPage(),
-        home: (_) => const HomePage(),
-        social: (_) => const SocialPage(),
-        profile: (_) => const ProfilePage(),
-        socialDebug: (_) => const SocialPage(),
-        soloPractice: (ctx) {
-          final lesson = ModalRoute.of(ctx)!.settings.arguments as Lesson?;
-          return SoloPracticePage(lesson: lesson);
-        },
-        groupSessionSelect: (_) => const GroupSessionSelectPage(),
-        groupSessionPrivateSelect: (_) => const GroupSessionPrivateSelectPage(),
-        groupSessionPrivateCreate: (_) => const GroupSessionPrivateCreatePage(),
-        groupSessionPrivateJoin: (_) => const GroupSessionPrivateJoinPage(),
-        groupSessionActiveLobby: (_) => const GroupSessionActiveLobbyPage(),
-        groupSessionPublicMatch: (_) => const GroupSessionPublicMatchPage(),
-        groupSessionPostSession: (ctx) {
-          final args = ModalRoute.of(ctx)!.settings.arguments;
-          final participants = args is List<PrivateLobby> ? args : <PrivateLobby>[];
-          return GroupPostSessionPage(participants: participants);
-        },
-        resetPassword: (_) => const ResetPasswordPage(),
-      };
+    courses: (_) => const CoursesListPage(),
+    home: (_) => const HomePage(),
+    social: (_) => const SocialPage(),
+    profile: (_) => const ProfilePage(),
+    socialDebug: (_) => const SocialPage(),
+    soloPractice: (ctx) {
+      final lesson = ModalRoute.of(ctx)!.settings.arguments as Lesson?;
+      return SoloPracticePage(lesson: lesson);
+    },
+    groupSessionSelect: (_) => const GroupSessionSelectPage(),
+    groupSessionPrivateSelect: (_) => const GroupSessionPrivateSelectPage(),
+    groupSessionPrivateCreate: (_) => const GroupSessionPrivateCreatePage(),
+    groupSessionPrivateJoin: (_) => const GroupSessionPrivateJoinPage(),
+    groupSessionActiveLobby: (_) => const GroupSessionActiveLobbyPage(),
+    groupSessionPublicMatch: (_) => const GroupSessionPublicMatchPage(),
+    groupSessionPostSession: (ctx) {
+      final args = ModalRoute.of(ctx)!.settings.arguments;
+      final participants = args is List<PrivateLobby> ? args : <PrivateLobby>[];
+      return GroupPostSessionPage(participants: participants);
+    },
+    resetPassword: (_) => const ResetPasswordPage(),
+  };
 }

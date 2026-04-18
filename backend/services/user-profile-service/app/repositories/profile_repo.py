@@ -79,6 +79,7 @@ class ProfileRepo(Protocol):
         accent: str | None = None,
         daily_pace: str | None = None,
         skill_assess: str | None = None,
+        focus_areas: str | None = None,
         mark_complete: bool = False,
     ) -> None: ...
 
@@ -107,4 +108,14 @@ class ProfileRepo(Protocol):
     Expected Behavior:
     - Perform partial update (only provided fields).
     - Mark onboarding as complete if specified.
+    """
+
+    async def delete_profile(self, user_id: str) -> None: ...
+    """
+    Delete a user's profile.
+
+    Expected Behavior:
+    - Delete the profile row for the given user_id.
+    - This is called as part of account deletion cascade.
+    - Should succeed silently if profile does not exist.
     """

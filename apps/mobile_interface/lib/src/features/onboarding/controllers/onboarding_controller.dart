@@ -9,11 +9,9 @@ class OnboardingController extends ChangeNotifier {
   final AuthService authService;
   final OnboardingData data = OnboardingData();
 
-  OnboardingController({
-    ApiClient? apiClient,
-    AuthService? authService,
-  })  : apiClient = apiClient ?? ApiClient(),
-        authService = authService ?? AuthService();
+  OnboardingController({ApiClient? apiClient, AuthService? authService})
+    : apiClient = apiClient ?? ApiClient(),
+      authService = authService ?? AuthService();
 
   void setLearningGoal(String value) {
     data.learningGoal = value;
@@ -37,6 +35,11 @@ class OnboardingController extends ChangeNotifier {
 
   void setSkillAssess(String value) {
     data.skillAssess = value;
+    notifyListeners();
+  }
+
+  void setFocusAreas(String value) {
+    data.focusAreas = value;
     notifyListeners();
   }
 
@@ -67,17 +70,11 @@ class OnboardingController extends ChangeNotifier {
 
     Map<String, dynamic> profile;
     try {
-      profile = await apiClient.getJson(
-        '/profile',
-        accessToken: accessToken,
-      );
+      profile = await apiClient.getJson('/profile', accessToken: accessToken);
     } on ApiException catch (e) {
       if (e.statusCode == 404) {
         await _initProfileForExistingUser(accessToken);
-        profile = await apiClient.getJson(
-          '/profile',
-          accessToken: accessToken,
-        );
+        profile = await apiClient.getJson('/profile', accessToken: accessToken);
       } else {
         rethrow;
       }
@@ -85,6 +82,7 @@ class OnboardingController extends ChangeNotifier {
 
     data.skillAssess = profile['skill_assess'] as String?;
     data.learningGoal = profile['learning_goal'] as String?;
+    data.focusAreas = profile['focus_areas'] as String?;
     data.accent = profile['accent'] as String?;
     data.feedbackTone = profile['feedback_tone'] as String?;
     data.dailyPace = profile['daily_pace'] as String?;
@@ -94,12 +92,15 @@ class OnboardingController extends ChangeNotifier {
       return AppRoutes.courses;
     }
 
-    if (data.skillAssess == null) return AppRoutes.onboardingSkillAssess;
-    if (data.learningGoal == null) return AppRoutes.onboardingLearningGoal;
-    if (data.accent == null) return AppRoutes.onboardingAccentSelection;
-    if (data.feedbackTone == null) return AppRoutes.onboardingFeedbackTone;
+    if (_isMissing(data.skillAssess)) return AppRoutes.onboardingSkillAssess;
+    if (_isMissing(data.learningGoal)) return AppRoutes.onboardingLearningGoal;
+    if (_isMissing(data.focusAreas)) return AppRoutes.onboardingFocusAreas;
+    if (_isMissing(data.accent)) return AppRoutes.onboardingAccentSelection;
+    if (_isMissing(data.feedbackTone)) return AppRoutes.onboardingFeedbackTone;
     return AppRoutes.onboardingDailyGoal;
   }
+
+  bool _isMissing(String? value) => value == null || value.trim().isEmpty;
 
   Future<void> _initProfileForExistingUser(String accessToken) async {
     final user = authService.currentUser;
@@ -128,7 +129,9 @@ class OnboardingController extends ChangeNotifier {
         body: {
           'username': username,
           'email': email,
-          'full_name': (fullName != null && fullName.isNotEmpty) ? fullName : null,
+          'full_name': (fullName != null && fullName.isNotEmpty)
+              ? fullName
+              : null,
           'native_language': null,
         },
       );
@@ -141,7 +144,9 @@ class OnboardingController extends ChangeNotifier {
         body: {
           'username': 'user$idPrefix',
           'email': email,
-          'full_name': (fullName != null && fullName.isNotEmpty) ? fullName : null,
+          'full_name': (fullName != null && fullName.isNotEmpty)
+              ? fullName
+              : null,
           'native_language': null,
         },
       );
@@ -151,7 +156,9 @@ class OnboardingController extends ChangeNotifier {
   String _normalizeUsername(String raw) {
     final lower = raw.toLowerCase();
     final sanitized = lower.replaceAll(RegExp(r'[^a-z0-9_]'), '_');
-    final squashed = sanitized.replaceAll(RegExp(r'_+'), '_').replaceAll(RegExp(r'^_|_$'), '');
+    final squashed = sanitized
+        .replaceAll(RegExp(r'_+'), '_')
+        .replaceAll(RegExp(r'^_|_$'), '');
     return squashed;
   }
 
@@ -161,8 +168,10 @@ class OnboardingController extends ChangeNotifier {
         return AppRoutes.login;
       case AppRoutes.onboardingLearningGoal:
         return AppRoutes.onboardingSkillAssess;
-      case AppRoutes.onboardingAccentSelection:
+      case AppRoutes.onboardingFocusAreas:
         return AppRoutes.onboardingLearningGoal;
+      case AppRoutes.onboardingAccentSelection:
+        return AppRoutes.onboardingFocusAreas;
       case AppRoutes.onboardingFeedbackTone:
         return AppRoutes.onboardingAccentSelection;
       case AppRoutes.onboardingDailyGoal:
@@ -171,8 +180,6 @@ class OnboardingController extends ChangeNotifier {
         return null;
     }
   }
-
-
 
   Future<void> saveAll() async {
     final accessToken = authService.accessToken;
@@ -186,6 +193,7 @@ class OnboardingController extends ChangeNotifier {
       'accent': data.accent,
       'daily_pace': data.dailyPace,
       'skill_assess': data.skillAssess,
+      'focus_areas': data.focusAreas,
       'mark_complete': true,
     };
 

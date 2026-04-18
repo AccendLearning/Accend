@@ -8,6 +8,8 @@ import '../../../common/utils/metric_formatters.dart';
 import '../../../app/routes.dart';
 import '../controllers/public_profile_controller.dart';
 import '../models/profile_page_data.dart';
+import '../../home/controllers/home_controller.dart';
+import '../../social/controllers/social_controller.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -21,6 +23,7 @@ class _ProfilePageState extends State<ProfilePage> {
   String? _fullNameError;
   String? _goalsError;
   bool _isLoggingOut = false;
+  bool _isDeletingAccount = false;
 
   bool _detailsExpanded = true;
   bool _preferencesExpanded = false;
@@ -369,7 +372,15 @@ class _ProfilePageState extends State<ProfilePage> {
                                     ),
                           ),
                           const SizedBox(height: 10),
-                          _DangerAction(label: 'Delete Account', onPressed: () {}),
+                          _DangerAction(
+                            label: _isDeletingAccount ? 'Deleting...' : 'Delete Account',
+                            onPressed: _isDeletingAccount
+                                ? () {}
+                                : () => _confirmAndDeleteAccount(
+                                      context,
+                                      context.read<PublicProfileController>(),
+                                    ),
+                          ),
                         ],
                       ),
                     ),
@@ -394,42 +405,117 @@ class _ProfilePageState extends State<ProfilePage> {
     final shouldLogOut = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: AppColors.surface,
-          title: Text(
-            'Log out?',
-            style: GoogleFonts.inter(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          content: Text(
-            'You will need to sign in again to access your account.',
-            style: GoogleFonts.inter(
-              color: AppColors.textSecondary,
-              fontSize: 14,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(
-                'Cancel',
-                style: GoogleFonts.inter(color: AppColors.textSecondary),
-              ),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(
-                'Log Out',
-                style: GoogleFonts.inter(
-                  color: AppColors.failure,
-                  fontWeight: FontWeight.w700,
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Container(
+            width: 342,
+            padding: const EdgeInsets.all(20),
+            decoration: ShapeDecoration(
+              color: AppColors.surface,
+              shape: RoundedRectangleBorder(
+                side: const BorderSide(
+                  width: 1,
+                  color: Color(0x7F334155),
                 ),
+                borderRadius: BorderRadius.circular(20),
               ),
             ),
-          ],
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              spacing: 16,
+              children: [
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: ShapeDecoration(
+                    color: const Color(0x2606B6D4),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.logout,
+                    color: AppColors.accent,
+                    size: 24,
+                  ),
+                ),
+                Text(
+                  'Log Out',
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                SizedBox(
+                  width: 268,
+                  child: Opacity(
+                    opacity: 0.70,
+                    child: Text(
+                      'Taking a break from the climb?\nWe\'ll save your spot.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.inter(
+                        color: AppColors.textSecondary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 250,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(false),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.action,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      'Stay Climbing',
+                      style: GoogleFonts.inter(
+                        color: Colors.black,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 250,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(true),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      side: const BorderSide(
+                        width: 0.30,
+                        color: Colors.white,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                    child: Text(
+                      'Log Out',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       },
     );
@@ -440,6 +526,9 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       await controller.logOut();
       if (!context.mounted) return;
+      // Clear controller caches so old user data doesn't show
+      context.read<HomeController>().clear();
+      context.read<SocialController>().clear();
       Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.login, (_) => false);
     } catch (_) {
       if (!context.mounted) return;
@@ -452,6 +541,154 @@ class _ProfilePageState extends State<ProfilePage> {
     } finally {
       if (context.mounted) {
         setState(() => _isLoggingOut = false);
+      }
+    }
+  }
+
+  Future<void> _confirmAndDeleteAccount(
+    BuildContext context,
+    PublicProfileController controller,
+  ) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Container(
+            width: 342,
+            padding: const EdgeInsets.all(20),
+            decoration: ShapeDecoration(
+              color: AppColors.surface,
+              shape: RoundedRectangleBorder(
+                side: const BorderSide(
+                  width: 1,
+                  color: Color(0x7F334155),
+                ),
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              spacing: 16,
+              children: [
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: ShapeDecoration(
+                    color: const Color(0x26FF4444),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.delete_forever,
+                    color: Color(0xFFFF4444),
+                    size: 24,
+                  ),
+                ),
+                Text(
+                  'Delete Account',
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                SizedBox(
+                  width: 268,
+                  child: Opacity(
+                    opacity: 0.70,
+                    child: Text(
+                      'This cannot be undone. All your data will be permanently deleted, including your profile, courses, and all activity history.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.inter(
+                        color: AppColors.textSecondary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 250,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(false),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.action,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      'Keep Account',
+                      style: GoogleFonts.inter(
+                        color: Colors.black,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 250,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(true),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      side: const BorderSide(
+                        width: 1,
+                        color: Color(0xFFFF4444),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                    child: Text(
+                      'Delete Forever',
+                      style: GoogleFonts.inter(
+                        color: const Color(0xFFFF4444),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (shouldDelete != true || !context.mounted) return;
+
+    setState(() => _isDeletingAccount = true);
+    try {
+      await controller.deleteAccount();
+      if (!context.mounted) return;
+      // Clear controller caches so old user data doesn't show
+      context.read<HomeController>().clear();
+      context.read<SocialController>().clear();
+      Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.login, (_) => false);
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(controller.error ?? 'Unable to delete account right now.'),
+          backgroundColor: AppColors.failure,
+        ),
+      );
+    } finally {
+      if (context.mounted) {
+        setState(() => _isDeletingAccount = false);
       }
     }
   }
@@ -560,7 +797,9 @@ class _ProfilePageState extends State<ProfilePage> {
     final selected = await showDialog<String>(
       context: context,
       barrierDismissible: true,
-      builder: (ctx) => const _AddGoalPopup(),
+      builder: (ctx) => _AddGoalPopup(
+        disabledGoals: _selectedGoals,
+      ),
     );
 
     if (!mounted || selected == null || selected.isEmpty) {
@@ -1522,8 +1761,11 @@ class _GoalChip extends StatelessWidget {
   }
 }
 
+
 class _AddGoalPopup extends StatefulWidget {
-  const _AddGoalPopup();
+  const _AddGoalPopup({super.key, this.disabledGoals = const []});
+
+  final List<String> disabledGoals;
 
   @override
   State<_AddGoalPopup> createState() => _AddGoalPopupState();
@@ -1580,11 +1822,15 @@ class _AddGoalPopupState extends State<_AddGoalPopup> {
               runSpacing: 10,
               children: _goalOptions
                   .map(
-                    (goal) => _GoalOptionTile(
-                      option: goal,
-                      selected: _selected == goal.label,
-                      onTap: () => setState(() => _selected = goal.label),
-                    ),
+                    (goal) {
+                      final isDisabled = widget.disabledGoals.map((g) => g.toLowerCase()).contains(goal.label.toLowerCase());
+                      return _GoalOptionTile(
+                        option: goal,
+                        selected: _selected == goal.label,
+                        disabled: isDisabled,
+                        onTap: isDisabled ? null : () => setState(() => _selected = goal.label),
+                      );
+                    },
                   )
                   .toList(growable: false),
             ),
@@ -1750,25 +1996,41 @@ class _GoalOptionTile extends StatelessWidget {
   const _GoalOptionTile({
     required this.option,
     required this.selected,
-    required this.onTap,
+    this.disabled = false,
+    this.onTap,
   });
 
   final _GoalOption option;
   final bool selected;
-  final VoidCallback onTap;
+  final bool disabled;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final Color tileColor = disabled
+        ? const Color(0xFF23263A)
+        : selected
+            ? const Color(0xFF334155)
+            : const Color(0xFF2D3250);
+    final Color textColor = disabled
+        ? AppColors.textSecondary.withOpacity(0.5)
+        : Colors.white;
+    final Color borderColor = selected
+        ? AppColors.accent
+        : disabled
+            ? AppColors.textSecondary.withOpacity(0.2)
+            : Colors.transparent;
+
     return InkWell(
-      onTap: onTap,
+      onTap: disabled ? null : onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
         width: 84,
         height: 98,
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFF334155) : const Color(0xFF2D3250),
+          color: tileColor,
           borderRadius: BorderRadius.circular(16),
-          border: selected ? Border.all(color: AppColors.accent) : null,
+          border: Border.all(color: borderColor),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         child: Column(
@@ -1778,10 +2040,12 @@ class _GoalOptionTile extends StatelessWidget {
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                color: const Color(0x1906B6D4),
+                color: disabled
+                    ? const Color(0x1906B6D4).withOpacity(0.3)
+                    : const Color(0x1906B6D4),
                 borderRadius: BorderRadius.circular(999),
               ),
-              child: Icon(option.icon, size: 20, color: Colors.white),
+              child: Icon(option.icon, size: 20, color: textColor),
             ),
             const SizedBox(height: 8),
             Text(
@@ -1790,7 +2054,7 @@ class _GoalOptionTile extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.visible,
               style: GoogleFonts.inter(
-                color: Colors.white,
+                color: textColor,
                 fontSize: option.label.length > 11 ? 10 : 12,
                 fontWeight: FontWeight.w700,
                 height: 1.1,

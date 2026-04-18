@@ -141,6 +141,7 @@ class SupabaseProfileRepo(ProfileRepo):
         accent: str | None = None,
         daily_pace: str | None = None,
         skill_assess: str | None = None,
+        focus_areas: str | None = None,
         mark_complete: bool = False,
     ) -> None:
         """
@@ -170,6 +171,8 @@ class SupabaseProfileRepo(ProfileRepo):
             payload["daily_pace"] = daily_pace
         if skill_assess is not None:
             payload["skill_assess"] = skill_assess
+        if focus_areas is not None:
+            payload["focus_areas"] = focus_areas
         if mark_complete:
             payload["onboarding_complete"] = True
 
@@ -218,5 +221,22 @@ class SupabaseProfileRepo(ProfileRepo):
         await supabase.patch(
             "profiles",
             json=payload,
+            params={"id": f"eq.{user_id}"},
+        )
+
+    async def delete_profile(self, user_id: str) -> None:
+        """
+        Delete a user's profile.
+
+        Flow:
+        1. Delete the profile row matching user_id.
+        2. Silently succeed if profile does not exist.
+
+        Notes:
+        - This is typically called as part of account deletion cascade.
+        - Uses DELETE with filter on id.
+        """
+        await supabase.delete(
+            "profiles",
             params={"id": f"eq.{user_id}"},
         )

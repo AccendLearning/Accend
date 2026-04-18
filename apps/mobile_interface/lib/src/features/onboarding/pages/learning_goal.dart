@@ -7,7 +7,6 @@ import 'package:mobile_interface/src/app/constants.dart';
 import 'package:mobile_interface/src/app/routes.dart';
 import 'package:mobile_interface/src/features/onboarding/controllers/onboarding_controller.dart';
 
-
 class LearningGoalPage extends StatefulWidget {
   const LearningGoalPage({super.key});
 
@@ -71,7 +70,7 @@ class _LearningGoalPageState extends State<LearningGoalPage> {
     if (goal == null) return;
     debugPrint('LearningGoal payload: {learning_goal: $goal}');
     await context.read<OnboardingController>().saveProgress(silent: false);
-    Navigator.pushNamed(context, AppRoutes.onboardingAccentSelection);
+    Navigator.pushNamed(context, AppRoutes.onboardingFocusAreas);
   }
 
   Future<void> _onBack() async {
@@ -101,87 +100,89 @@ class _LearningGoalPageState extends State<LearningGoalPage> {
             vertical: AppSpacing.sm + 6,
           ),
           child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          OnboardingTopBar(
-            step: 2,
-            totalSteps: 5,
-            rightLabel: 'Learning Goal',
-            showBack: true,
-            onBack: _onBack,
-          ),
-          const SizedBox(height: AppSpacing.sm),
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              OnboardingTopBar(
+                step: 2,
+                totalSteps: 6,
+                rightLabel: 'Learning Goal',
+                showBack: true,
+                onBack: _onBack,
+              ),
+              const SizedBox(height: AppSpacing.sm),
 
-          const OnboardingProgressBar(step: 2, totalSteps: 5),
-          const SizedBox(height: AppSpacing.xl),
+              const OnboardingProgressBar(step: 2, totalSteps: 6),
+              const SizedBox(height: AppSpacing.xl),
 
-          const OnboardingQuestionHeader(
-            icon: Icons.flag_outlined,
-            leadingText: 'Why ',
-            highlightedText: 'are you learning?',
-            subheader: 'This will help the AI determine your coursework.',
-            leadingColor: AppColors.accent,          // blue "Why"
-            highlightedColor: AppColors.textPrimary, // white "are you learning?"
-          ),
-          const SizedBox(height: AppSpacing.lg),
+              const OnboardingQuestionHeader(
+                icon: Icons.flag_outlined,
+                leadingText: 'Why ',
+                highlightedText: 'are you learning?',
+                subheader: 'This will help the AI determine your coursework.',
+                leadingColor: AppColors.accent, // blue "Why"
+                highlightedColor:
+                    AppColors.textPrimary, // white "are you learning?"
+              ),
+              const SizedBox(height: AppSpacing.lg),
 
-          // Grid fills remaining space; no scrolling
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                const crossAxisSpacing = 16.0;
-                const mainAxisSpacing = 12.0;
+              // Grid fills remaining space; no scrolling
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    const crossAxisSpacing = 16.0;
+                    const mainAxisSpacing = 12.0;
 
-                final gridWidth = constraints.maxWidth;
-                final gridHeight = constraints.maxHeight;
+                    final gridWidth = constraints.maxWidth;
+                    final gridHeight = constraints.maxHeight;
 
-                // 2x2 grid: compute card sizes to exactly fit available height
-                final cardWidth = (gridWidth - crossAxisSpacing) / 2;
-                final cardHeight = (gridHeight - mainAxisSpacing) / 2;
+                    // 2x2 grid: compute card sizes to exactly fit available height
+                    final cardWidth = (gridWidth - crossAxisSpacing) / 2;
+                    final cardHeight = (gridHeight - mainAxisSpacing) / 2;
 
-                final childAspectRatio =
-                    (cardHeight <= 0) ? 1.0 : (cardWidth / cardHeight);
+                    final childAspectRatio = (cardHeight <= 0)
+                        ? 1.0
+                        : (cardWidth / cardHeight);
 
-                return GridView.builder(
-                  padding: EdgeInsets.zero,
-                  itemCount: _options.length,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: crossAxisSpacing,
-                    mainAxisSpacing: mainAxisSpacing,
-                    childAspectRatio: childAspectRatio,
-                  ),
-                  itemBuilder: (context, idx) {
-                    final opt = _options[idx];
-                    final selected = _selectedIndex == idx;
-
-                    return GestureDetector(
-                      onTap: () => _onSelect(idx),
-                      child: GoalOptionCard(
-                        title: opt.title,
-                        icon: opt.icon,
-                        selected: selected,
+                    return GridView.builder(
+                      padding: EdgeInsets.zero,
+                      itemCount: _options.length,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: crossAxisSpacing,
+                        mainAxisSpacing: mainAxisSpacing,
+                        childAspectRatio: childAspectRatio,
                       ),
+                      itemBuilder: (context, idx) {
+                        final opt = _options[idx];
+                        final selected = _selectedIndex == idx;
+
+                        return GestureDetector(
+                          onTap: () => _onSelect(idx),
+                          child: GoalOptionCard(
+                            title: opt.title,
+                            icon: opt.icon,
+                            selected: selected,
+                          ),
+                        );
+                      },
                     );
                   },
-                );
-              },
-            ),
-          ),
+                ),
+              ),
 
-          // button margin top
-          const SizedBox(height: 16),
+              // button margin top
+              const SizedBox(height: 16),
 
-          SizedBox(
-            height: 56,
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _selectedIndex == null ? null : _onContinue,
-              child: const Text('Continue'),
-            ),
+              SizedBox(
+                height: 56,
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _selectedIndex == null ? null : _onContinue,
+                  child: const Text('Continue'),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
         ),
       ),
     );
@@ -205,8 +206,8 @@ class GoalOptionCard extends StatelessWidget {
     // Keep icon alignment consistent, but don’t let the title get pushed down.
     const double iconCircleSize = 80;
     const double iconSize = 40;
-    const double iconSlotHeight = 84;   // ↓ was 96 (reduces empty space)
-    const double titleSlotHeight = 56;  // fixed title slot instead of Expanded
+    const double iconSlotHeight = 84; // ↓ was 96 (reduces empty space)
+    const double titleSlotHeight = 56; // fixed title slot instead of Expanded
 
     return Container(
       decoration: BoxDecoration(
@@ -254,14 +255,15 @@ class GoalOptionCard extends StatelessWidget {
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: (Theme.of(context).textTheme.titleMedium ??
-                        const TextStyle())
-                    .copyWith(
-                  color: AppColors.textPrimary,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  height: 1.1,
-                ),
+                style:
+                    (Theme.of(context).textTheme.titleMedium ??
+                            const TextStyle())
+                        .copyWith(
+                          color: AppColors.textPrimary,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          height: 1.1,
+                        ),
               ),
             ),
           ),
