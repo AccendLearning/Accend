@@ -5,6 +5,7 @@ class OnboardingData {
   String? accent;
   String? dailyPace;
   String? skillAssess;
+  String? focusAreas;
 
   OnboardingData({
     this.learningGoal,
@@ -12,6 +13,7 @@ class OnboardingData {
     this.accent,
     this.dailyPace,
     this.skillAssess,
+    this.focusAreas,
   });
 
   // Converts this model into the field names expected by the backend API
@@ -21,5 +23,6 @@ class OnboardingData {
     'accent': accent,
     'daily_pace': dailyPace,
     'skill_assess': skillAssess,
+    'focus_areas': focusAreas,
   };
 }

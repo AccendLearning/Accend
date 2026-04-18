@@ -141,6 +141,7 @@ class SupabaseProfileRepo(ProfileRepo):
         accent: str | None = None,
         daily_pace: str | None = None,
         skill_assess: str | None = None,
+        focus_areas: str | None = None,
         mark_complete: bool = False,
     ) -> None:
         """
@@ -170,6 +171,8 @@ class SupabaseProfileRepo(ProfileRepo):
             payload["daily_pace"] = daily_pace
         if skill_assess is not None:
             payload["skill_assess"] = skill_assess
+        if focus_areas is not None:
+            payload["focus_areas"] = focus_areas
         if mark_complete:
             payload["onboarding_complete"] = True
 

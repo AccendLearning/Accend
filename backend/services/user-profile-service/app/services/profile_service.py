@@ -185,6 +185,7 @@ class ProfileService:
         accent: str | None = None,
         daily_pace: str | None = None,
         skill_assess: str | None = None,
+        focus_areas: str | None = None,
         mark_complete: bool = False,
     ) -> None:
         """
@@ -209,6 +210,7 @@ class ProfileService:
             accent=self._normalize_choice(accent),
             daily_pace=self._normalize_choice(daily_pace),
             skill_assess=self._normalize_choice(skill_assess),
+            focus_areas=self._normalize_learning_goals(focus_areas),
             mark_complete=mark_complete,
         )
 
