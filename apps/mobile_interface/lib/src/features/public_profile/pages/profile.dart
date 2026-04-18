@@ -394,42 +394,113 @@ class _ProfilePageState extends State<ProfilePage> {
     final shouldLogOut = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: AppColors.surface,
-          title: Text(
-            'Log out?',
-            style: GoogleFonts.inter(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          content: Text(
-            'You will need to sign in again to access your account.',
-            style: GoogleFonts.inter(
-              color: AppColors.textSecondary,
-              fontSize: 14,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(
-                'Cancel',
-                style: GoogleFonts.inter(color: AppColors.textSecondary),
-              ),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(
-                'Log Out',
-                style: GoogleFonts.inter(
-                  color: AppColors.failure,
-                  fontWeight: FontWeight.w700,
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Container(
+            width: 342,
+            padding: const EdgeInsets.all(20),
+            decoration: ShapeDecoration(
+              color: AppColors.surface,
+              shape: RoundedRectangleBorder(
+                side: const BorderSide(
+                  width: 1,
+                  color: Color(0x7F334155),
                 ),
+                borderRadius: BorderRadius.circular(20),
               ),
             ),
-          ],
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              spacing: 16,
+              children: [
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: ShapeDecoration(
+                    color: const Color(0x2606B6D4),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.logout,
+                    color: AppColors.accent,
+                    size: 24,
+                  ),
+                ),
+                Text(
+                  'Log Out',
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                SizedBox(
+                  width: 268,
+                  child: Opacity(
+                    opacity: 0.70,
+                    child: Text(
+                      'Taking a break from the climb?\nWe\'ll save your spot.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.inter(
+                        color: AppColors.textSecondary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 250,
+                  height: 44,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(false),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.action,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      'Stay Climbing',
+                      style: GoogleFonts.inter(
+                        color: Colors.black,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 250,
+                  height: 44,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(true),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(
+                        width: 0.30,
+                        color: Colors.white,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                    child: Text(
+                      'Log Out',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       },
     );
