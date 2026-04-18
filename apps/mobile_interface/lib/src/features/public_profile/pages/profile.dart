@@ -613,11 +613,13 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 SizedBox(
                   width: 250,
-                  height: 44,
                   child: ElevatedButton(
                     onPressed: () => Navigator.of(dialogContext).pop(false),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.action,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(999),
                       ),
@@ -635,10 +637,12 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 SizedBox(
                   width: 250,
-                  height: 44,
                   child: OutlinedButton(
                     onPressed: () => Navigator.of(dialogContext).pop(true),
                     style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       side: const BorderSide(
                         width: 1,
                         color: Color(0xFFFF4444),
