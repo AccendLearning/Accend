@@ -1129,7 +1129,7 @@ class _StatsPanel extends StatelessWidget {
                 const SizedBox(height: 14),
                 Container(height: 1, color: Colors.white.withValues(alpha: 0.05)),
                 const SizedBox(height: 12),
-                const _ActivityBars(),
+                _ActivityBars(data: data),
               ],
             )
           : Row(
@@ -1141,7 +1141,7 @@ class _StatsPanel extends StatelessWidget {
                   margin: const EdgeInsets.symmetric(horizontal: 16),
                   color: Colors.white.withValues(alpha: 0.05),
                 ),
-                const Expanded(flex: 4, child: _ActivityBars()),
+                Expanded(flex: 4, child: _ActivityBars(data: data)),
               ],
             ),
     );
@@ -1264,18 +1264,93 @@ class _StatsSummary extends StatelessWidget {
 }
 
 class _ActivityBars extends StatelessWidget {
-  const _ActivityBars();
+  const _ActivityBars({required this.data});
+
+  final ProfilePageData data;
 
   @override
   Widget build(BuildContext context) {
-    final heights = [28.0, 42.0, 38.0, 48.0, 58.0];
-    final colors = const [
-      Color(0x1AFFFFFF),
-      Color(0x4C06B6D4),
-      Color(0x7F06B6D4),
-      Color(0xB206B6D4),
-      Color(0xFF06B6D4),
-    ];
+    // Always expect 5 days from backend
+    final activity = data.dailyActivity.isEmpty
+        ? []
+        : (data.dailyActivity.length <= 5
+            ? data.dailyActivity
+            : data.dailyActivity.sublist(data.dailyActivity.length - 5));
+
+    // If no activity at all, show empty state
+    if (activity.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'ACTIVITY',
+                style: GoogleFonts.inter(
+                  color: AppColors.textSecondary,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const Spacer(),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            height: 84,
+            child: Center(
+              child: Text(
+                'No activity yet',
+                style: GoogleFonts.inter(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Center(
+            child: Text(
+              'LAST 5 DAYS',
+              style: GoogleFonts.inter(
+                color: AppColors.textSecondary,
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.3,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Calculate heights based on minutes (scale to 0-60px range)
+    // Days with 0 minutes get minimum height
+    final maxMinutes = activity.map((a) => a.minutes).reduce((a, b) => a > b ? a : b).toDouble();
+    final minHeight = 8.0;
+    final maxHeight = 60.0;
+    
+    final heights = activity.map((item) {
+      if (item.minutes == 0) return minHeight;
+      if (maxMinutes == 0) return minHeight;
+      return minHeight + (item.minutes / maxMinutes) * (maxHeight - minHeight);
+    }).toList();
+
+    // Generate opacity based on position (from faded to full)
+    final colors = List.generate(
+      activity.length,
+      (index) {
+        final opacityStep = 1.0 / activity.length;
+        final opacity = (index + 1) * opacityStep;
+        return Color.lerp(
+          const Color(0x1AFFFFFF),
+          const Color(0xFF06B6D4),
+          opacity,
+        )!;
+      },
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1292,7 +1367,6 @@ class _ActivityBars extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textSecondary, size: 14),
           ],
         ),
         const SizedBox(height: 14),

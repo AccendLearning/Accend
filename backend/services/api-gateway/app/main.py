@@ -390,6 +390,7 @@ async def profile_page_preload(
     - progress-service /goals/progress (streak)
     - progress-service /phonemes/overall-accuracy
     - courses-service /lessons/completed-count
+    - progress-service /daily-activity (last 5 days)
     """
     user_id = verify_supabase_jwt(authorization)
 
@@ -414,12 +415,17 @@ async def profile_page_preload(
             f"{settings.COURSES_SERVICE_URL}/lessons/completed-count",
             headers={"X-User-Id": user_id},
         )
-        profile_res, counts_res, goals_res, accuracy_res, lessons_completed_res = await asyncio.gather(
+        activity_req = client.get(
+            f"{settings.PROGRESS_SERVICE_URL}/daily-activity",
+            headers={"X-User-Id": user_id},
+        )
+        profile_res, counts_res, goals_res, accuracy_res, lessons_completed_res, activity_res = await asyncio.gather(
             profile_req,
             counts_req,
             goals_req,
             accuracy_req,
             lessons_completed_req,
+            activity_req,
         )
 
     if profile_res.status_code >= 400:
@@ -443,6 +449,7 @@ async def profile_page_preload(
             "meters_climbed": int(lessons_completed_res.json().get("meters_climbed", 0) or 0),
             "level": int(lessons_completed_res.json().get("level", 1) or 1),
         },
+        "activity": activity_res.json() if activity_res.status_code < 400 else [],
     }
 
 

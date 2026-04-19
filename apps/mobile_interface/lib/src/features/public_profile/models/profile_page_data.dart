@@ -18,6 +18,7 @@ class ProfilePageData {
     required this.overallAccuracy,
     required this.lessonsCompleted,
     required this.metersClimbed,
+    required this.dailyActivity,
   });
 
   final String id;
@@ -38,6 +39,7 @@ class ProfilePageData {
   final double overallAccuracy;
   final int lessonsCompleted;
   final int metersClimbed;
+  final List<DailyActivity> dailyActivity;
 
   String get displayName => (fullName?.trim().isNotEmpty ?? false) ? fullName!.trim() : username;
 
@@ -48,6 +50,7 @@ class ProfilePageData {
     final social = Map<String, dynamic>.from(json['social'] as Map? ?? const {});
     final stats = Map<String, dynamic>.from(json['stats'] as Map? ?? const {});
     final parsedLevel = (stats['level'] as num?)?.toInt() ?? 1;
+    final activityList = (json['activity'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
 
     return ProfilePageData(
       id: profile['id']?.toString() ?? '',
@@ -68,6 +71,22 @@ class ProfilePageData {
       overallAccuracy: (stats['overall_accuracy'] as num?)?.toDouble() ?? 0.0,
       lessonsCompleted: (stats['lessons_completed'] as num?)?.toInt() ?? 0,
       metersClimbed: (stats['meters_climbed'] as num?)?.toInt() ?? (((stats['lessons_completed'] as num?)?.toInt() ?? 0) * 100),
+      dailyActivity: activityList
+          .map((item) => DailyActivity(
+                date: item['date']?.toString() ?? '',
+                minutes: (item['minutes'] as num?)?.toInt() ?? 0,
+              ))
+          .toList(),
     );
   }
+}
+
+class DailyActivity {
+  final String date;
+  final int minutes;
+
+  const DailyActivity({
+    required this.date,
+    required this.minutes,
+  });
 }
