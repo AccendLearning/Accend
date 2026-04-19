@@ -11,6 +11,7 @@ class ProfilePageData {
     this.accent,
     this.dailyPace,
     this.focusAreas,
+    this.profileImageUrl,
     required this.followersCount,
     required this.followingCount,
     required this.level,
@@ -32,6 +33,7 @@ class ProfilePageData {
   final String? accent;
   final String? dailyPace;
   final String? focusAreas;
+  final String? profileImageUrl;
   final int followersCount;
   final int followingCount;
   final int level;
@@ -64,6 +66,7 @@ class ProfilePageData {
       accent: profile['accent']?.toString(),
       dailyPace: profile['daily_pace']?.toString(),
       focusAreas: profile['focus_areas']?.toString(),
+      profileImageUrl: profile['profile_image_url']?.toString(),
       followersCount: (social['followers'] as num?)?.toInt() ?? 0,
       followingCount: (social['following'] as num?)?.toInt() ?? 0,
       level: parsedLevel < 1 ? 1 : parsedLevel,
