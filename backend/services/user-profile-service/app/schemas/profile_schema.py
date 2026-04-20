@@ -96,6 +96,15 @@ class ProfileReadResponse(BaseModel):
     focus_areas: str | None = None
     current_streak: int = 0
     longest_streak: int = 0
+    profile_image_url: str | None = None
+
+
+class ProfileImageUpdate(BaseModel):
+    profile_image_url: str
+
+
+class ProfileImageResponse(BaseModel):
+    profile_image_url: str | None = None
 
 
 class ProfileOnboardingUpdate(BaseModel):

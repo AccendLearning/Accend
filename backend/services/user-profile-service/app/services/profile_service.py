@@ -271,6 +271,12 @@ class ProfileService:
             current_streak=max(0, int(current_streak)),
             longest_streak=max(0, int(longest_streak)),
         )
+    async def update_profile_image(self, user_id: str, profile_image_url: str) -> None:
+        if not user_id:
+            bad_request("user_id missing")
+        if not profile_image_url or not profile_image_url.strip():
+            bad_request("profile_image_url is required")
+        await self.repo.update_profile_image(user_id, profile_image_url.strip())
 
     async def delete_account(self, user_id: str) -> None:
         """
