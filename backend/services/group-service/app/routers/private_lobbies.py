@@ -188,3 +188,19 @@ def submit_turn_score(
     except RuntimeError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
+
+@router.post("/{lobby_id}/turn_state/vote_next_round", response_model=LobbyTurnStateOut)
+def vote_next_round(
+    lobby_id: int,
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+    svc: PrivateLobbyService = Depends(get_private_lobby_service),
+):
+    user_id = _get_user_id(x_user_id)
+    try:
+        return svc.vote_next_round(
+            lobby_id=lobby_id,
+            actor_user_id=str(user_id),
+        )
+    except RuntimeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+

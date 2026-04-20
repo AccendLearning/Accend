@@ -168,6 +168,39 @@ class _GroupSessionActiveLobbyPageState extends State<GroupSessionActiveLobbyPag
     }
   }
 
+  Future<void> _voteNextRound(List<PrivateLobby> players) async {
+    final state = _turnState;
+    if (players.isEmpty || state == null || !state.roundComplete) return;
+
+    final lobbyId = int.tryParse(players.first.lobbyId);
+    if (lobbyId == null) return;
+
+    final ctrl = context.read<GroupSessionController>();
+    try {
+      final json = await ctrl.voteLobbyNextRound(
+        lobbyId: lobbyId,
+        lobbyKind: _lobbyKind,
+      );
+      final next = _LobbyTurnState.fromJson(json);
+      if (!mounted) return;
+      setState(() {
+        _turnState = next;
+
+        // Once the backend resets the round, wipe local UI artifacts too.
+        if (!next.roundComplete) {
+          _newlyPlantedFlags.clear();
+          _scoreController.clear();
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vote failed. Try again.')),
+      );
+      await _syncTurnState();
+    }
+  }
+
   void _startTurnStatePolling() {
     _turnPoller?.cancel();
     _turnPoller = Timer.periodic(const Duration(seconds: 2), (_) {
@@ -286,6 +319,12 @@ class _GroupSessionActiveLobbyPageState extends State<GroupSessionActiveLobbyPag
     final queue = state?.queueParticipants ?? const <_TurnParticipant>[];
     final currentPlayer = state?.currentPlayer;
     final scoresByPlayer = state?.scoresByPlayer ?? const <String, double>{};
+    final myUserId = ctrl.myUserId;
+    final nextRoundVotes = state?.nextRoundVotes ?? const <String>[];
+    final nextRoundVoteCount = state?.nextRoundVoteCount ?? 0;
+    final haveIVotedNextRound =
+        myUserId != null && myUserId.isNotEmpty && nextRoundVotes.contains(myUserId);
+    final participantCount = state?.participants.length ?? players.length;
 
     return Scaffold(
       backgroundColor: AppColors.primaryBg,
@@ -431,6 +470,7 @@ class _GroupSessionActiveLobbyPageState extends State<GroupSessionActiveLobbyPag
                   const SizedBox(height: 12),
                   TextField(
                     controller: _scoreController,
+                    enabled: !allTurnsScored,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     style: t.textTheme.bodyMedium?.copyWith(color: AppColors.textPrimary),
                     decoration: InputDecoration(
@@ -449,9 +489,11 @@ class _GroupSessionActiveLobbyPageState extends State<GroupSessionActiveLobbyPag
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: (players.isEmpty || allTurnsScored)
+                      onPressed: players.isEmpty
                           ? null
-                          : () => _submitCurrentScore(players),
+                          : (allTurnsScored
+                              ? (haveIVotedNextRound ? null : () => _voteNextRound(players))
+                              : () => _submitCurrentScore(players)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.surface,
                         foregroundColor: AppColors.textPrimary,
@@ -460,7 +502,13 @@ class _GroupSessionActiveLobbyPageState extends State<GroupSessionActiveLobbyPag
                           side: const BorderSide(color: AppColors.border),
                         ),
                       ),
-                      child: Text(allTurnsScored ? 'All turns submitted' : 'Submit score'),
+                      child: Text(
+                        allTurnsScored
+                            ? (haveIVotedNextRound
+                                ? 'Voted ($nextRoundVoteCount/$participantCount)'
+                                : 'Vote next round ($nextRoundVoteCount/$participantCount)')
+                            : 'Submit score',
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -818,6 +866,8 @@ class _LobbyTurnState {
     required this.roundComplete,
     required this.eventSeq,
     required this.latestScoredUserId,
+    required this.nextRoundVotes,
+    required this.nextRoundVoteCount,
   });
 
   final int currentTurnIndex;
@@ -825,6 +875,8 @@ class _LobbyTurnState {
   final bool roundComplete;
   final int eventSeq;
   final String? latestScoredUserId;
+  final List<String> nextRoundVotes;
+  final int nextRoundVoteCount;
 
   factory _LobbyTurnState.fromJson(Map<String, dynamic> json) {
     final list = (json['participants'] as List<dynamic>? ?? const [])
@@ -832,12 +884,17 @@ class _LobbyTurnState {
         .map(_TurnParticipant.fromJson)
         .toList()
       ..sort((a, b) => a.turnOrder.compareTo(b.turnOrder));
+    final votes = (json['next_round_votes'] as List<dynamic>? ?? const [])
+        .whereType<String>()
+        .toList();
     return _LobbyTurnState(
       currentTurnIndex: (json['current_turn_index'] as num?)?.toInt() ?? 0,
       participants: list,
       roundComplete: json['round_complete'] == true,
       eventSeq: (json['event_seq'] as num?)?.toInt() ?? 0,
       latestScoredUserId: json['latest_scored_user_id'] as String?,
+      nextRoundVotes: votes,
+      nextRoundVoteCount: (json['next_round_vote_count'] as num?)?.toInt() ?? votes.length,
     );
   }
 

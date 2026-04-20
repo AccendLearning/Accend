@@ -13,6 +13,7 @@ from app.schemas.private_lobby_schema import (
 @dataclass
 class _TurnState:
     scores_by_user: dict[str, float] = field(default_factory=dict)
+    next_round_votes_by_user: set[str] = field(default_factory=set)
     event_seq: int = 0
     latest_scored_user_id: str | None = None
 
@@ -66,8 +67,48 @@ class LobbyTurnStateStore:
                 raise RuntimeError("Not your turn")
 
             state.scores_by_user[actor_user_id] = float(score)
+            # Any score change invalidates prior "next round" voting.
+            state.next_round_votes_by_user.clear()
             state.event_seq += 1
             state.latest_scored_user_id = actor_user_id
+            return self._to_output(
+                lobby_kind=lobby_kind,
+                lobby_id=lobby_id,
+                ordered_members=ordered,
+                state=state,
+            )
+
+    def vote_next_round(
+        self,
+        *,
+        lobby_kind: str,
+        lobby_id: int,
+        members: list[PrivateLobbyMemberOut],
+        actor_user_id: str,
+    ) -> LobbyTurnStateOut:
+        with self._lock:
+            state = self._state_by_lobby.setdefault((lobby_kind, lobby_id), _TurnState())
+            ordered = self._ordered_members(members)
+            self._prune_scores(state, ordered)
+
+            # Only allow voting once the round is complete.
+            if self._first_unscored_index(ordered, state) is not None:
+                raise RuntimeError("Round not complete")
+
+            allowed = {m.user_id for m in ordered}
+            if actor_user_id not in allowed:
+                raise RuntimeError("Not a lobby member")
+
+            state.next_round_votes_by_user.add(actor_user_id)
+            state.event_seq += 1
+
+            # Unanimous vote resets the round.
+            if allowed and state.next_round_votes_by_user.issuperset(allowed):
+                state.scores_by_user.clear()
+                state.next_round_votes_by_user.clear()
+                state.latest_scored_user_id = None
+                state.event_seq += 1
+
             return self._to_output(
                 lobby_kind=lobby_kind,
                 lobby_id=lobby_id,
@@ -80,6 +121,7 @@ class LobbyTurnStateStore:
             for lobby_key in list(self._state_by_lobby.keys()):
                 state = self._state_by_lobby[lobby_key]
                 state.scores_by_user.pop(user_id, None)
+                state.next_round_votes_by_user.discard(user_id)
                 if state.latest_scored_user_id == user_id:
                     state.latest_scored_user_id = None
 
@@ -93,6 +135,9 @@ class LobbyTurnStateStore:
         for user_id in list(state.scores_by_user.keys()):
             if user_id not in allowed:
                 del state.scores_by_user[user_id]
+        for user_id in list(state.next_round_votes_by_user):
+            if user_id not in allowed:
+                state.next_round_votes_by_user.discard(user_id)
         if state.latest_scored_user_id not in allowed:
             state.latest_scored_user_id = None
 
@@ -138,6 +183,8 @@ class LobbyTurnStateStore:
             round_complete=round_complete,
             event_seq=state.event_seq,
             latest_scored_user_id=state.latest_scored_user_id,
+            next_round_votes=sorted(state.next_round_votes_by_user),
+            next_round_vote_count=len(state.next_round_votes_by_user),
         )
 
 

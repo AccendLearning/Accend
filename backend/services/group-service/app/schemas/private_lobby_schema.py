@@ -79,7 +79,18 @@ class LobbyTurnStateOut(BaseModel):
     round_complete: bool
     event_seq: int
     latest_scored_user_id: str | None = None
+    next_round_votes: list[str] = Field(default_factory=list)
+    next_round_vote_count: int = 0
 
 
 class LobbyTurnScoreIn(BaseModel):
     score: float = Field(ge=0, le=100)
+
+
+class LobbyNextRoundVoteOut(BaseModel):
+    """
+    Kept as a distinct response model option if we later want to return something
+    other than the full LobbyTurnStateOut.
+    """
+
+    state: LobbyTurnStateOut

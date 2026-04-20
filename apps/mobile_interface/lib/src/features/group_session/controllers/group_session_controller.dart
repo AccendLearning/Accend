@@ -28,6 +28,8 @@ class GroupSessionController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   List<PrivateLobby> get privateLobby => List.unmodifiable(_privateLobby);
+  String? get myUserId => _auth.currentUser?.id;
+
   PrivateLobby? get createPrivateLobby => _createPrivateLobby;
   PrivateLobby? get joinPrivateLobby => _joinPrivateLobby;
 
@@ -474,6 +476,22 @@ class GroupSessionController extends ChangeNotifier {
       body: {
         'score': score,
       },
+    );
+  }
+
+  Future<Map<String, dynamic>> voteLobbyNextRound({
+    required int lobbyId,
+    required String lobbyKind,
+  }) async {
+    final token = _auth.accessToken;
+    if (token == null || token.isEmpty) {
+      throw StateError('Not authenticated');
+    }
+    final base = lobbyKind == 'public' ? '/public_lobbies' : '/private_lobbies';
+    return _api.postJson(
+      '$base/$lobbyId/turn_state/vote_next_round',
+      accessToken: token,
+      body: const <String, dynamic>{},
     );
   }
 

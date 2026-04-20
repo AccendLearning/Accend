@@ -72,3 +72,17 @@ class PublicLobbyService:
             actor_user_id=actor_user_id,
             score=score,
         )
+
+    def vote_next_round(
+        self,
+        *,
+        lobby_id: int,
+        actor_user_id: str,
+    ) -> LobbyTurnStateOut:
+        members = self.repo.get_lobby(lobby_id)
+        return turn_state_store.vote_next_round(
+            lobby_kind="public",
+            lobby_id=lobby_id,
+            members=members,
+            actor_user_id=actor_user_id,
+        )
