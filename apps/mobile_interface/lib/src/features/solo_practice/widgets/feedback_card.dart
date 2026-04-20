@@ -1,10 +1,9 @@
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/constants.dart';
-import '../models/pronunciation_feedback.dart';
+import '../../../common/models/pronunciation_feedback.dart';
+import '../../../common/widgets/phoneme_feedback.dart';
 
 /// Maps a word/phoneme accuracy score to a semantic color.
 /// ≥ 85 → success green, ≥ 60 → action orange, else failure red.
@@ -264,8 +263,9 @@ void showWordPhonemeDialog(BuildContext context, WordFeedback word) {
   );
 }
 
-/// Inline feedback card shown after the user submits a recording.
-/// Displays word-level and phoneme-level scores; tap a word to see phoneme breakdown.
+/// Inline feedback card shown after the user submits a recording in solo
+/// practice. Displays word-level and phoneme-level scores; tap a word chip
+/// to see the phoneme breakdown bottom sheet.
 class FeedbackCard extends StatelessWidget {
   const FeedbackCard({
     super.key,
@@ -275,6 +275,7 @@ class FeedbackCard extends StatelessWidget {
   });
 
   final PronunciationFeedbackMock feedback;
+
   /// Re-record and regrade the same item from scratch.
   final VoidCallback onRetry;
   final VoidCallback onNext;
@@ -316,7 +317,7 @@ class FeedbackCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            "Tap any word below to see your phoneme-level feedback!",
+            'Tap any word below to see your phoneme-level feedback!',
             style: bodyStyle.copyWith(fontSize: 12),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -348,9 +349,21 @@ class FeedbackCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              ScoreChip(label: 'Accuracy', score: feedback.accuracyScore, style: scoreStyle, bodyStyle: bodyStyle),
-              ScoreChip(label: 'Fluency', score: feedback.fluencyScore, style: scoreStyle, bodyStyle: bodyStyle),
-              ScoreChip(label: 'Complete', score: feedback.completenessScore, style: scoreStyle, bodyStyle: bodyStyle),
+              ScoreChip(
+                  label: 'Accuracy',
+                  score: feedback.accuracyScore,
+                  style: scoreStyle,
+                  bodyStyle: bodyStyle),
+              ScoreChip(
+                  label: 'Fluency',
+                  score: feedback.fluencyScore,
+                  style: scoreStyle,
+                  bodyStyle: bodyStyle),
+              ScoreChip(
+                  label: 'Complete',
+                  score: feedback.completenessScore,
+                  style: scoreStyle,
+                  bodyStyle: bodyStyle),
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -366,11 +379,16 @@ class FeedbackCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(AppRadii.md),
                       side: const BorderSide(color: AppColors.border),
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: AppSpacing.md),
                   ),
                   child: Text(
                     'Try Again',
-                    style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary).copyWith(inherit: false),
+                    style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary)
+                        .copyWith(inherit: false),
                   ),
                 ),
               ),
@@ -384,11 +402,16 @@ class FeedbackCard extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppRadii.md),
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: AppSpacing.md),
                   ),
                   child: Text(
                     'Next',
-                    style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF101828)).copyWith(inherit: false),
+                    style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF101828))
+                        .copyWith(inherit: false),
                   ),
                 ),
               ),
@@ -396,195 +419,6 @@ class FeedbackCard extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-/// Small chip showing a score label and numeric value (e.g. Accuracy: 85).
-///
-/// Styles are injected by the parent so all three chips in [FeedbackCard]
-/// share the same `GoogleFonts` instances without extra allocations.
-class ScoreChip extends StatelessWidget {
-  const ScoreChip({
-    super.key,
-    required this.label,
-    required this.score,
-    required this.style,
-    required this.bodyStyle,
-  });
-
-  final String label;
-  final double score;
-  final TextStyle style;
-  final TextStyle bodyStyle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          label,
-          style: bodyStyle.copyWith(fontSize: 12),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          '${score.round()}',
-          style: style.copyWith(fontSize: 14),
-        ),
-      ],
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Phoneme detail dialog
-// ---------------------------------------------------------------------------
-
-/// Dialog shown when the user taps a phoneme chip.
-/// Manages its own [AudioPlayer] so it is properly disposed on close.
-class PhonemeDetailDialog extends StatefulWidget {
-  const PhonemeDetailDialog({
-    super.key,
-    required this.symbol,
-    required this.chipColor,
-    this.accuracy,
-  });
-
-  final String symbol;
-  final Color chipColor;
-  final double? accuracy;
-
-  @override
-  State<PhonemeDetailDialog> createState() => _PhonemeDetailDialogState();
-}
-
-class _PhonemeDetailDialogState extends State<PhonemeDetailDialog> {
-  final AudioPlayer _player = AudioPlayer();
-  bool _isPlaying = false;
-  bool _isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _player.onPlayerStateChanged.listen((state) {
-      if (mounted) {
-        setState(() {
-          _isPlaying = state == PlayerState.playing;
-          // The spinner shows from tap until the player leaves `stopped`.
-          // `stopped` is also the initial state before any audio loads, so
-          // we only clear the spinner once playback, pause, or completion fires.
-          if (state != PlayerState.stopped) _isLoading = false;
-        });
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _player.dispose();
-    super.dispose();
-  }
-
-  Future<void> _togglePlayback() async {
-    if (_isPlaying) {
-      await _player.stop();
-      return;
-    }
-    setState(() => _isLoading = true);
-    final url = Supabase.instance.client.storage
-        .from(AppStorage.phonemeBucket)
-        .getPublicUrl(AppStorage.phonemeAudioPath(widget.symbol));
-    try {
-      // Stop any previous stream before starting a new one; calling play()
-      // directly on an active player can cause overlap or stale-state errors.
-      await _player.stop();
-      await _player.play(UrlSource(url));
-    } catch (_) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not play audio. Please try again.')),
-        );
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bodyStyle = GoogleFonts.publicSans(
-      color: AppColors.textSecondary,
-      fontSize: 14,
-      fontWeight: FontWeight.w500,
-    );
-
-    final instruction = phonemeInstructions[widget.symbol.toLowerCase()];
-
-    return AlertDialog(
-      backgroundColor: AppColors.surface,
-      title: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppColors.inputFill,
-              borderRadius: BorderRadius.circular(AppRadii.sm),
-            ),
-            child: Text(
-              widget.symbol,
-              style: GoogleFonts.inter(
-                color: widget.chipColor,
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          if (widget.accuracy != null) ...[
-            const SizedBox(width: 10),
-            Text(
-              '${widget.accuracy!.round()}',
-              style: GoogleFonts.inter(
-                color: widget.chipColor,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-          const Spacer(),
-          SizedBox(
-            width: 48,
-            height: 48,
-            child: _isLoading
-                ? const Padding(
-                    padding: EdgeInsets.all(12),
-                    child: CircularProgressIndicator(
-                      color: AppColors.accent,
-                      strokeWidth: 2.5,
-                    ),
-                  )
-                : IconButton(
-                    onPressed: _togglePlayback,
-                    tooltip: _isPlaying ? 'Stop' : 'Play example',
-                    icon: Icon(
-                      _isPlaying
-                          ? Icons.stop_circle_outlined
-                          : Icons.play_circle_outline,
-                      color: AppColors.accent,
-                      size: 32,
-                    ),
-                  ),
-          ),
-        ],
-      ),
-      content: instruction == null
-          ? Text('No instruction available for "${widget.symbol}".', style: bodyStyle)
-          : Text(instruction, style: bodyStyle),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Got it'),
-        ),
-      ],
     );
   }
 }
