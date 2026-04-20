@@ -67,14 +67,13 @@ class ProfileImageService {
 
     final objectPath = AppStorage.profileImagePath(userId, ext);
 
-    // Upload to Supabase Storage
     await storage.uploadBinary(
       objectPath,
       bytes,
       fileOptions: FileOptions(contentType: mimeType),
     );
 
-    // Generate public URL
+    // Generate public URL (unique filename guarantees no CDN cache hit)
     final publicUrl = storage.getPublicUrl(objectPath);
 
     debugPrint('Profile image uploaded: $publicUrl');

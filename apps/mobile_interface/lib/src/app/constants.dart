@@ -67,6 +67,10 @@ class AppStorage {
   /// Returns the storage path for a phoneme audio clip, e.g. "iy.m4a".
   static String phonemeAudioPath(String symbol) => '${symbol.toLowerCase()}.m4a';
 
-  /// Returns the storage path for a profile avatar, e.g. "profiles/{userId}/avatar.jpg".
-  static String profileImagePath(String userId, String ext) => 'profiles/$userId/avatar.$ext';
+  /// Returns the storage path for a profile avatar with a cache-busting
+  /// timestamp, e.g. "profiles/{userId}/avatar_1713600000.jpg".
+  static String profileImagePath(String userId, String ext) {
+    final ts = DateTime.now().millisecondsSinceEpoch;
+    return 'profiles/$userId/avatar_$ts.$ext';
+  }
 }
