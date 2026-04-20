@@ -94,8 +94,9 @@ class LoginController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final cacheUserId = auth.currentUser?.id;
       await auth.signOut();
-      home.clear();
+      await home.clear(cacheUserId: cacheUserId);
       identifierController.clear();
       passwordController.clear();
 

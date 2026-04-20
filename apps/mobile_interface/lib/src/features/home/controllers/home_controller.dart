@@ -2,17 +2,25 @@ import 'package:flutter/foundation.dart';
 
 import 'package:mobile_interface/src/common/services/api_client.dart';
 import 'package:mobile_interface/src/common/services/auth_service.dart';
+import 'package:mobile_interface/src/common/services/home_snapshot_cache.dart';
 
 class HomeController extends ChangeNotifier {
-  HomeController({required ApiClient api, required AuthService auth})
-      : _api = api,
-        _auth = auth;
+  HomeController({
+    required ApiClient api,
+    required AuthService auth,
+    required HomeSnapshotCache snapshotCache,
+  })  : _api = api,
+        _auth = auth,
+        _snapshotCache = snapshotCache;
 
   final ApiClient _api;
   final AuthService _auth;
+  final HomeSnapshotCache _snapshotCache;
 
   bool _isLoading = false;
   bool _hasStaticData = false;
+  /// True once we have a persisted snapshot for this user or a successful `GET /home`.
+  bool _hasHomeSnapshot = false;
   String? _error;
   String _displayName = 'there';
   String? _activeCourseId;
@@ -23,6 +31,7 @@ class HomeController extends ChangeNotifier {
 
   bool get isLoading => _isLoading;
   bool get hasStaticData => _hasStaticData;
+  bool get hasHomeSnapshot => _hasHomeSnapshot;
   String? get error => _error;
   String get displayName => _displayName;
   String? get activeCourseId => _activeCourseId;
@@ -35,6 +44,10 @@ class HomeController extends ChangeNotifier {
     if (_goalMinutes <= 0) return 0;
     return (_currentMinutes / _goalMinutes).clamp(0, 1).toDouble();
   }
+
+  /// When true, the home page can hide the blocking loader / goal skeleton
+  /// because streak/minutes are shown from cache while the network refreshes.
+  bool get shouldShowBlockingHomeLoad => _isLoading && !_hasHomeSnapshot;
 
   int _goalMinutesFromDailyPace(String? dailyPace) {
     switch ((dailyPace ?? '').trim().toLowerCase()) {
@@ -51,10 +64,43 @@ class HomeController extends ChangeNotifier {
     }
   }
 
+  Future<void> _hydrateDynamicFromDisk() async {
+    final userId = _auth.currentUser?.id;
+    if (userId == null || userId.isEmpty) return;
+
+    final snap = await _snapshotCache.read(userId);
+    if (snap == null) return;
+
+    _currentStreak = snap.currentStreak;
+    _currentMinutes = snap.currentMinutes;
+    _hasHomeSnapshot = true;
+  }
+
+  Future<void> _persistDynamicSnapshot() async {
+    final userId = _auth.currentUser?.id;
+    if (userId == null || userId.isEmpty) return;
+
+    await _snapshotCache.write(
+      userId,
+      currentStreak: _currentStreak,
+      currentMinutes: _currentMinutes,
+    );
+    _hasHomeSnapshot = true;
+  }
+
+  void _applyDynamicFieldsFromHomeJson(Map<String, dynamic> data) {
+    _currentMinutes = (data['current_minutes'] as num?)?.toInt() ?? 0;
+    _currentStreak = (data['current_streak'] as num?)?.toInt() ?? 0;
+  }
+
   /// Loads home data. On the first call it fetches both /home and /profile and
   /// caches the static fields (display name, active course, goal minutes).
   /// On subsequent calls it only fetches /home and refreshes the dynamic fields
   /// (current_minutes, current_streak), saving the /profile round-trip.
+  ///
+  /// Persists streak and minutes after each successful `/home` response.
+  /// Applies the last persisted snapshot from disk first so the home goal card
+  /// can render without a blocking load when cache exists.
   Future<void> load() async {
     if (_isLoading) return;
 
@@ -65,6 +111,9 @@ class HomeController extends ChangeNotifier {
       return;
     }
 
+    await _hydrateDynamicFromDisk();
+    notifyListeners();
+
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -72,9 +121,8 @@ class HomeController extends ChangeNotifier {
     try {
       final data = await _api.getJson('/home', accessToken: accessToken);
 
-      // Dynamic fields — always refresh on every visit.
-      _currentMinutes = (data['current_minutes'] as int?) ?? 0;
-      _currentStreak = (data['current_streak'] as int?) ?? 0;
+      _applyDynamicFieldsFromHomeJson(data);
+      await _persistDynamicSnapshot();
 
       // Static fields — fetched once and cached for the session.
       if (!_hasStaticData) {
@@ -110,10 +158,35 @@ class HomeController extends ChangeNotifier {
     }
   }
 
+  /// Refreshes streak and minutes from `GET /home` and updates disk cache.
+  /// Does not toggle [isLoading]; safe to call after a lesson completes.
+  Future<void> refreshProgressFromServer() async {
+    final accessToken = _auth.accessToken;
+    if (accessToken == null || accessToken.isEmpty) return;
+
+    try {
+      final data = await _api.getJson('/home', accessToken: accessToken);
+      _applyDynamicFieldsFromHomeJson(data);
+      await _persistDynamicSnapshot();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Failed to refresh home progress: $e');
+    }
+  }
+
   /// Clears all cached data. Call this when the user logs out so the next
   /// login starts with a fresh full fetch.
-  void clear() {
+  ///
+  /// Pass [cacheUserId] when the auth session is already cleared (e.g. after
+  /// [AuthService.signOut]) so the on-disk snapshot for that user is removed.
+  Future<void> clear({String? cacheUserId}) async {
+    final uid = cacheUserId ?? _auth.currentUser?.id;
+    if (uid != null && uid.isNotEmpty) {
+      await _snapshotCache.clear(uid);
+    }
+
     _hasStaticData = false;
+    _hasHomeSnapshot = false;
     _displayName = 'there';
     _activeCourseId = null;
     _activeCourseTitle = 'No active course yet';

@@ -12,6 +12,7 @@ import 'theme.dart';
 
 import 'package:mobile_interface/src/common/services/api_client.dart';
 import 'package:mobile_interface/src/common/services/auth_service.dart';
+import 'package:mobile_interface/src/common/services/home_snapshot_cache.dart';
 import 'package:mobile_interface/src/features/onboarding/controllers/onboarding_controller.dart';
 import 'package:mobile_interface/src/features/public_profile/controllers/public_profile_controller.dart';
 import 'package:mobile_interface/src/features/social/controllers/social_controller.dart';
@@ -67,10 +68,12 @@ class _MyAppState extends State<MyApp> {
       providers: [
         Provider<ApiClient>(create: (_) => ApiClient()),
         Provider<AuthService>(create: (_) => AuthService()),
+        Provider<HomeSnapshotCache>(create: (_) => HomeSnapshotCache()),
         ChangeNotifierProvider<HomeController>(
           create: (ctx) => HomeController(
             api: ctx.read<ApiClient>(),
             auth: ctx.read<AuthService>(),
+            snapshotCache: ctx.read<HomeSnapshotCache>(),
           ),
         ),
         ChangeNotifierProvider<CoursesController>(

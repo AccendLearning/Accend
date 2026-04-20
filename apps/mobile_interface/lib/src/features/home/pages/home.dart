@@ -72,7 +72,7 @@ class _HomePageState extends State<HomePage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (controller.isLoading)
+                        if (controller.shouldShowBlockingHomeLoad)
                           const Padding(
                             padding: EdgeInsets.only(bottom: 8),
                             child: LinearProgressIndicator(minHeight: 2),
@@ -86,7 +86,8 @@ class _HomePageState extends State<HomePage> {
                             streak: controller.currentStreak,
                             progress: controller.progress,
                             compact: true,
-                            isLoading: controller.isLoading || !controller.hasActiveCourse,
+                            isLoading: controller.shouldShowBlockingHomeLoad ||
+                                !controller.hasActiveCourse,
                             onKeepGoing: () {
                               if (!controller.hasActiveCourse) {
                                 ScaffoldMessenger.of(context).showSnackBar(

@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../../app/constants.dart';
 import '../../../app/routes.dart';
 import '../../courses/controllers/courses_controller.dart';
+import '../../home/controllers/home_controller.dart';
 import '../../courses/models/lesson.dart';
 import '../../courses/models/lesson_item.dart';
 import '../../progress/services/progress_service.dart';
@@ -191,7 +192,11 @@ class _PracticeResultsPageState extends State<PracticeResultsPage>
       if (!mounted) return;
       context
           .read<CoursesController>()
-          .completeLesson(lesson.courseId, lesson.id);
+          .completeLesson(lesson.courseId, lesson.id)
+          .then((_) {
+        if (!mounted) return;
+        context.read<HomeController>().refreshProgressFromServer();
+      });
     });
   }
 
