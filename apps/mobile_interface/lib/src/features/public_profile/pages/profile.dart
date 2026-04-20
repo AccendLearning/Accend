@@ -9,6 +9,7 @@ import '../../../app/routes.dart';
 import '../controllers/public_profile_controller.dart';
 import '../models/profile_page_data.dart';
 import '../services/profile_image_service.dart';
+import '../../../common/services/auth_service.dart';
 import '../../home/controllers/home_controller.dart';
 import '../../social/controllers/social_controller.dart';
 
@@ -531,10 +532,11 @@ class _ProfilePageState extends State<ProfilePage> {
 
     setState(() => _isLoggingOut = true);
     try {
+      final cacheUserId = context.read<AuthService>().currentUser?.id;
       await controller.logOut();
       if (!context.mounted) return;
       // Clear controller caches so old user data doesn't show
-      context.read<HomeController>().clear();
+      await context.read<HomeController>().clear(cacheUserId: cacheUserId);
       context.read<SocialController>().clear();
       Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.login, (_) => false);
     } catch (_) {
@@ -679,10 +681,11 @@ class _ProfilePageState extends State<ProfilePage> {
 
     setState(() => _isDeletingAccount = true);
     try {
+      final cacheUserId = context.read<AuthService>().currentUser?.id;
       await controller.deleteAccount();
       if (!context.mounted) return;
       // Clear controller caches so old user data doesn't show
-      context.read<HomeController>().clear();
+      await context.read<HomeController>().clear(cacheUserId: cacheUserId);
       context.read<SocialController>().clear();
       Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.login, (_) => false);
     } catch (_) {

@@ -12,6 +12,7 @@ import '../../../common/services/auth_service.dart';
 import '../../../common/widgets/microphone.dart';
 import '../../courses/controllers/courses_controller.dart';
 import '../../courses/models/lesson.dart';
+import '../../home/controllers/home_controller.dart';
 import '../../progress/services/progress_service.dart';
 import '../controllers/solo_practice_controller.dart';
 import '../../../common/widgets/interactive_feedback_sentence.dart';
@@ -249,6 +250,7 @@ class _SoloPracticePageState extends State<SoloPracticePage>
               ctx.read<ProgressService>().submitDailyMinutes(
                     secondsDelta: duration.inSeconds,
                   );
+              ctx.read<HomeController>().refreshProgressFromServer();
             },
           ),
         ),
