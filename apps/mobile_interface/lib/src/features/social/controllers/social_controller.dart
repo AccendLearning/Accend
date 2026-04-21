@@ -15,6 +15,7 @@ class SocialController extends ChangeNotifier {
 
   List<SocialUser> _followers = const [];
   List<SocialUser> _following = const [];
+  Set<String> _blockedIds = const {};
 
   String _followersQuery = '';
   String _followingQuery = '';
@@ -31,6 +32,7 @@ class SocialController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get hasLoaded => _hasLoaded;
   String? get error => _error;
+  Set<String> get blockedIds => _blockedIds;
 
   List<SocialUser> get followers {
     return _filterByQuery(_followers, _followersQuery);
@@ -57,21 +59,20 @@ class SocialController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final followersJson = await _api.getList(
-        '/social/followers',
-        accessToken: accessToken,
-      );
-      final followingJson = await _api.getList(
-        '/social/following',
-        accessToken: accessToken,
-      );
+      final results = await Future.wait([
+        _api.getList('/social/followers', accessToken: accessToken),
+        _api.getList('/social/following', accessToken: accessToken),
+        _api.getList('/social/blocked-ids', accessToken: accessToken)
+            .catchError((_) => <dynamic>[]),
+      ]);
 
-      _followers = followersJson
+      _followers = (results[0])
           .map((row) => SocialUser.fromJson(Map<String, dynamic>.from(row as Map)))
           .toList(growable: false);
-      _following = followingJson
+      _following = (results[1])
           .map((row) => SocialUser.fromJson(Map<String, dynamic>.from(row as Map)))
           .toList(growable: false);
+      _blockedIds = (results[2]).map((id) => id as String).toSet();
       _hasLoaded = true;
     } catch (e) {
       _error = e.toString();
@@ -102,6 +103,14 @@ class SocialController extends ChangeNotifier {
     await _setFollowState(userId: userId, following: false);
   }
 
+  Future<void> block(String userId) async {
+    await _setBlockState(userId: userId, blocking: true);
+  }
+
+  Future<void> unblock(String userId) async {
+    await _setBlockState(userId: userId, blocking: false);
+  }
+
   List<SocialUser> _filterByQuery(List<SocialUser> source, String query) {
     final q = query.trim().toLowerCase();
     if (q.isEmpty) return source;
@@ -118,6 +127,7 @@ class SocialController extends ChangeNotifier {
   void clear() {
     _followers = const [];
     _following = const [];
+    _blockedIds = const {};
     _followersQuery = '';
     _followingQuery = '';
     _isLoading = false;
@@ -142,6 +152,31 @@ class SocialController extends ChangeNotifier {
         await _api.postJson('/social/follow/$userId', accessToken: accessToken);
       } else {
         await _api.deleteJson('/social/follow/$userId', accessToken: accessToken);
+      }
+      await load(force: true);
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  Future<void> _setBlockState({
+    required String userId,
+    required bool blocking,
+  }) async {
+    final accessToken = _auth.accessToken;
+    if (accessToken == null || accessToken.isEmpty) {
+      _error = 'You must be logged in to block users.';
+      notifyListeners();
+      return;
+    }
+
+    try {
+      if (blocking) {
+        await _api.postJson('/social/block/$userId', accessToken: accessToken);
+      } else {
+        await _api.deleteJson('/social/block/$userId', accessToken: accessToken);
       }
       await load(force: true);
     } catch (e) {
