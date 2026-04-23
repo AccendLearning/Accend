@@ -139,13 +139,13 @@ class _SearchPopupState extends State<SearchPopup> {
     }
   }
 
-  Future<void> _toggleBlock(SocialUser user) async {
+  Future<void> _toggleBlock(SocialUser user, bool shouldBlock) async {
     try {
       final social = context.read<SocialController>();
-      if (user.iBlock) {
-        await social.unblock(user.id);
-      } else {
+      if (shouldBlock) {
         await social.block(user.id);
+      } else {
+        await social.unblock(user.id);
       }
 
       final currentQuery = _controller.text.trim();
@@ -319,7 +319,7 @@ class _SearchPopupState extends State<SearchPopup> {
                                   context: context,
                                   user: user,
                                   onPrimaryAction: () => _toggleFollow(user),
-                                  onAvoidAction: () => _toggleBlock(user),
+                                  onAvoidAction: (block) => _toggleBlock(user, block),
                                 ),
                                 child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),

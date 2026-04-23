@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../controllers/social_controller.dart';
 
+import 'blocked.dart';
 import 'followers.dart';
 import 'following.dart';
 import 'search_popup.dart';
@@ -89,6 +90,13 @@ class _SocialPageState extends State<SocialPage> {
                               onTap: () => setState(() => _selectedTab = 1),
                             ),
                           ),
+                          Expanded(
+                            child: _SegmentButton(
+                              title: 'Avoided',
+                              isSelected: _selectedTab == 2,
+                              onTap: () => setState(() => _selectedTab = 2),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -98,7 +106,9 @@ class _SocialPageState extends State<SocialPage> {
                         duration: const Duration(milliseconds: 180),
                         child: _selectedTab == 0
                             ? const FollowersTab(key: ValueKey('followers-tab'))
-                            : const FollowingTab(key: ValueKey('following-tab')),
+                            : _selectedTab == 1
+                                ? const FollowingTab(key: ValueKey('following-tab'))
+                                : const BlockedTab(key: ValueKey('blocked-tab')),
                       ),
                     ),
                   ],

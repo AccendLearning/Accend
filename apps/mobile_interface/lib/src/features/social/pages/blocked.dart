@@ -7,15 +7,15 @@ import '../controllers/social_controller.dart';
 import '../widgets/social_user_card.dart';
 import '../widgets/social_user_profile_popup.dart';
 
-class FollowersTab extends StatelessWidget {
-	const FollowersTab({super.key});
+class BlockedTab extends StatelessWidget {
+	const BlockedTab({super.key});
 
 	@override
 	Widget build(BuildContext context) {
 		return Consumer<SocialController>(
 			builder: (context, controller, _) {
-				final users = controller.followers;
-				final hasQuery = controller.followersQuery.trim().isNotEmpty;
+				final users = controller.blocked;
+				final hasQuery = controller.blockedQuery.trim().isNotEmpty;
 
 				if (controller.isLoading && !controller.hasLoaded) {
 					return const Center(child: CircularProgressIndicator());
@@ -25,13 +25,13 @@ class FollowersTab extends StatelessWidget {
 					crossAxisAlignment: CrossAxisAlignment.start,
 					children: [
 						_SocialSearchField(
-							hintText: 'Search followers...',
-							value: controller.followersQuery,
-							onChanged: controller.setFollowersQuery,
+							hintText: 'Search avoided...',
+							value: controller.blockedQuery,
+							onChanged: controller.setBlockedQuery,
 						),
 						const SizedBox(height: 16),
 						Text(
-							'${controller.followerCount} FOLLOWERS',
+							'${controller.blockedCount} AVOIDED',
 							style: GoogleFonts.montserrat(
 								color: AppColors.textSecondary,
 								fontSize: 12,
@@ -49,8 +49,8 @@ class FollowersTab extends StatelessWidget {
 									: users.isEmpty
 									? _EmptyState(
 											text: hasQuery
-													? 'No followers match your search.'
-													: 'You have no followers.',
+													? 'No avoided users match your search.'
+													: 'You haven\'t avoided anyone.',
 									  )
 									: ListView.builder(
 											itemCount: users.length,
@@ -59,27 +59,23 @@ class FollowersTab extends StatelessWidget {
 
 												return SocialUserCard(
 													user: user,
-													actionLabel: user.iFollow ? 'Following' : 'Follow Back',
-													highlightAction: !user.iFollow,
-													onActionPressed: () {
-														if (user.iFollow) {
-															controller.unfollow(user.id);
-															return;
-														}
-														controller.follow(user.id);
-													},
-																	onCardTap: () => showSocialUserProfilePopup(
-																		context: context,
-																		user: user,
-																		onPrimaryAction: () {
-																			if (user.iFollow) {
-																				controller.unfollow(user.id);
-																				return;
-																			}
-																			controller.follow(user.id);
-																		},																	onAvoidAction: (block) => block
-																		? controller.block(user.id)
-																		: controller.unblock(user.id),																	),
+													actionLabel: 'Unblock',
+													highlightAction: false,
+													onActionPressed: () => controller.unblock(user.id),
+													onCardTap: () => showSocialUserProfilePopup(
+														context: context,
+														user: user,
+														onPrimaryAction: () {
+															if (user.iFollow) {
+																controller.unfollow(user.id);
+																return;
+															}
+															controller.follow(user.id);
+														},
+														onAvoidAction: (block) => block
+															? controller.block(user.id)
+															: controller.unblock(user.id),
+													),
 												);
 											},
 										),

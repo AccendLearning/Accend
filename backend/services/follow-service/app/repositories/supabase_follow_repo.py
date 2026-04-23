@@ -289,6 +289,44 @@ class SupabaseFollowRepo:
         )
         return [row["blocked_id"] for row in rows if row.get("blocked_id")]
 
+    async def list_blocked(self, user_id: UUID) -> list[SocialUserOut]:
+        rows = await supabase.get(
+            "user_blocks",
+            params={"select": "blocked_id", "blocker_id": f"eq.{user_id}"},
+        )
+        blocked_ids = [row["blocked_id"] for row in rows if row.get("blocked_id")]
+        if not blocked_ids:
+            return []
+
+        profiles = await self._get_profiles(blocked_ids)
+        following_rows = await supabase.get(
+            "user_follows",
+            params={
+                "select": "followee_id",
+                "follower_id": f"eq.{user_id}",
+                "followee_id": self._in_clause(blocked_ids),
+            },
+        )
+        i_follow_ids = {row["followee_id"] for row in following_rows}
+        metrics = await self._get_social_metrics(blocked_ids)
+        await self._sync_missing_profile_levels(profiles, metrics["level"])
+
+        return [
+            self._to_social_user(
+                profiles[bid],
+                i_follow=bid in i_follow_ids,
+                follows_me=False,
+                i_block=True,
+                level=metrics["level"].get(bid, 1),
+                current_streak=metrics["streak"].get(bid, 0),
+                overall_accuracy=metrics["accuracy"].get(bid, 0.0),
+                lessons_completed=metrics["lessons"].get(bid, 0),
+                meters_climbed=metrics["meters"].get(bid, 0),
+            )
+            for bid in blocked_ids
+            if bid in profiles
+        ]
+
     async def delete_account(self, user_id: UUID) -> None:
         """
         Delete all follow relationships for a user.

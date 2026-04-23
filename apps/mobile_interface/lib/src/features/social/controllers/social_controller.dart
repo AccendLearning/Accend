@@ -15,10 +15,12 @@ class SocialController extends ChangeNotifier {
 
   List<SocialUser> _followers = const [];
   List<SocialUser> _following = const [];
+  List<SocialUser> _blocked = const [];
   Set<String> _blockedIds = const {};
 
   String _followersQuery = '';
   String _followingQuery = '';
+  String _blockedQuery = '';
 
   bool _isLoading = false;
   bool _hasLoaded = false;
@@ -26,9 +28,11 @@ class SocialController extends ChangeNotifier {
 
   int get followerCount => _followers.length;
   int get followingCount => _following.length;
+  int get blockedCount => _blocked.length;
 
   String get followersQuery => _followersQuery;
   String get followingQuery => _followingQuery;
+  String get blockedQuery => _blockedQuery;
   bool get isLoading => _isLoading;
   bool get hasLoaded => _hasLoaded;
   String? get error => _error;
@@ -40,6 +44,10 @@ class SocialController extends ChangeNotifier {
 
   List<SocialUser> get following {
     return _filterByQuery(_following, _followingQuery);
+  }
+
+  List<SocialUser> get blocked {
+    return _filterByQuery(_blocked, _blockedQuery);
   }
 
   Future<void> load({bool force = false}) async {
@@ -64,6 +72,8 @@ class SocialController extends ChangeNotifier {
         _api.getList('/social/following', accessToken: accessToken),
         _api.getList('/social/blocked-ids', accessToken: accessToken)
             .catchError((_) => <dynamic>[]),
+        _api.getList('/social/blocked', accessToken: accessToken)
+            .catchError((_) => <dynamic>[]),
       ]);
 
       _followers = (results[0])
@@ -73,6 +83,9 @@ class SocialController extends ChangeNotifier {
           .map((row) => SocialUser.fromJson(Map<String, dynamic>.from(row as Map)))
           .toList(growable: false);
       _blockedIds = (results[2]).map((id) => id as String).toSet();
+      _blocked = (results[3])
+          .map((row) => SocialUser.fromJson(Map<String, dynamic>.from(row as Map)))
+          .toList(growable: false);
       _hasLoaded = true;
     } catch (e) {
       _error = e.toString();
@@ -92,6 +105,12 @@ class SocialController extends ChangeNotifier {
   void setFollowingQuery(String value) {
     if (_followingQuery == value) return;
     _followingQuery = value;
+    notifyListeners();
+  }
+
+  void setBlockedQuery(String value) {
+    if (_blockedQuery == value) return;
+    _blockedQuery = value;
     notifyListeners();
   }
 
@@ -127,9 +146,11 @@ class SocialController extends ChangeNotifier {
   void clear() {
     _followers = const [];
     _following = const [];
+    _blocked = const [];
     _blockedIds = const {};
     _followersQuery = '';
     _followingQuery = '';
+    _blockedQuery = '';
     _isLoading = false;
     _hasLoaded = false;
     _error = null;

@@ -65,13 +65,9 @@ class FollowingTab extends StatelessWidget {
 																	onCardTap: () => showSocialUserProfilePopup(
 																		context: context,
 																		user: user,
-																		onPrimaryAction: () => controller.unfollow(user.id),																	onAvoidAction: () {
-																		if (user.iBlock) {
-																			controller.unblock(user.id);
-																		} else {
-																			controller.block(user.id);
-																		}
-																	},																	),
+																		onPrimaryAction: () => controller.unfollow(user.id),																	onAvoidAction: (block) => block
+																		? controller.block(user.id)
+																		: controller.unblock(user.id),																	),
 												);
 											},
 										),

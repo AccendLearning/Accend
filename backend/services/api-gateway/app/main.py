@@ -1615,6 +1615,19 @@ async def proxy_social_unblock_user(
     return r.json()
 
 
+@app.get("/social/blocked")
+async def proxy_social_blocked(authorization: str | None = Header(default=None)):
+    user_id = verify_supabase_jwt(authorization)
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.get(
+            f"{settings.FOLLOW_SERVICE_URL}/blocked",
+            headers={"X-User-Id": user_id},
+        )
+    if r.status_code >= 400:
+        raise HTTPException(status_code=r.status_code, detail=r.text)
+    return r.json()
+
+
 @app.get("/social/blocked-ids")
 async def proxy_social_blocked_ids(
     authorization: str | None = Header(default=None),
