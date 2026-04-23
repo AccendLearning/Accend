@@ -13,6 +13,7 @@ class SocialUser {
     required this.metersClimbed,
     required this.iFollow,
     required this.followsMe,
+    required this.iBlock,
     this.profileImageUrl,
   });
 
@@ -29,6 +30,7 @@ class SocialUser {
   final int metersClimbed;
   final bool iFollow;
   final bool followsMe;
+  final bool iBlock;
   final String? profileImageUrl;
 
   String get levelLabel => 'Level $level';
@@ -48,6 +50,7 @@ class SocialUser {
       metersClimbed: (json['meters_climbed'] as num?)?.toInt() ?? (((json['lessons_completed'] as num?)?.toInt() ?? 0) * 100),
       iFollow: json['i_follow'] == true,
       followsMe: json['follows_me'] == true,
+      iBlock: json['i_block'] == true,
       profileImageUrl: json['profile_image_url'] as String?,
     );
   }
@@ -63,6 +66,7 @@ class SocialUser {
     int? metersClimbed,
     bool? iFollow,
     bool? followsMe,
+    bool? iBlock,
     String? profileImageUrl,
   }) {
     return SocialUser(
@@ -79,6 +83,7 @@ class SocialUser {
       metersClimbed: metersClimbed ?? this.metersClimbed,
       iFollow: iFollow ?? this.iFollow,
       followsMe: followsMe ?? this.followsMe,
+      iBlock: iBlock ?? this.iBlock,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
     );
   }
