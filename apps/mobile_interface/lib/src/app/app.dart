@@ -138,6 +138,7 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> with SingleTickerProviderStateMixin {
   int _selectedIndex = 1;
+  bool _indexInitialised = false;
 
   late final AnimationController _fadeController;
   late final Animation<double> _fadeAnimation;
@@ -147,6 +148,15 @@ class _MainShellState extends State<MainShell> with SingleTickerProviderStateMix
     HomePage(),
     ProfilePage(),
   ];
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_indexInitialised) return;
+    _indexInitialised = true;
+    final arg = ModalRoute.of(context)?.settings.arguments;
+    if (arg is int) _selectedIndex = arg.clamp(0, _pages.length - 1);
+  }
 
   @override
   void initState() {

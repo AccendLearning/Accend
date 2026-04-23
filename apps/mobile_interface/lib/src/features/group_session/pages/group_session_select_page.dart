@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../app/constants.dart';
 import '../../../app/routes.dart' as routes;
+import '../../../common/widgets/bottom_nav_bar.dart';
 import '../../../common/widgets/colored_button.dart';
 import '../controllers/group_session_controller.dart';
 
@@ -17,6 +18,16 @@ class _GroupSessionSelectPageState extends State<GroupSessionSelectPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.primaryBg,
+      bottomNavigationBar: BottomNavBar(
+        selectedIndex: 1,
+        onDestinationSelected: (i) {
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            routes.AppRoutes.shell,
+            (_) => false,
+            arguments: i,
+          );
+        },
+      ),
       body: SafeArea(
         child: Column(
           children: [

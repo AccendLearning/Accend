@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../app/constants.dart';
 import '../../../app/routes.dart' as routes;
+import '../../../common/widgets/bottom_nav_bar.dart';
 import '../widgets/private_button.dart' as private_button;
 import 'package:flutter/services.dart';
 
@@ -28,6 +29,16 @@ class _GroupSessionSelectPageState extends State<GroupSessionPrivateSelectPage> 
     return Scaffold(
       backgroundColor: AppColors.primaryBg,
       resizeToAvoidBottomInset: true,
+      bottomNavigationBar: BottomNavBar(
+        selectedIndex: 1,
+        onDestinationSelected: (i) {
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            routes.AppRoutes.shell,
+            (_) => false,
+            arguments: i,
+          );
+        },
+      ),
       body: SafeArea(
         child: Column(
           children: [
