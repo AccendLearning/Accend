@@ -513,11 +513,19 @@ class GroupSessionController extends ChangeNotifier {
       body: {'topic': topic},
     );
 
-    final rawItems = response['items'] as List<dynamic>? ?? [];
-    _sessionItems = rawItems
-        .cast<Map<String, dynamic>>()
-        .map(LessonItem.fromSessionJson)
-        .toList();
+    final rawItems = (response['items'] as List<dynamic>? ?? [])
+        .cast<Map<String, dynamic>>();
+    _sessionItems = [
+      for (var i = 0; i < rawItems.length; i++)
+        LessonItem(
+          id: 'gs-$i',
+          lessonId: 'group-session',
+          position: i,
+          text: rawItems[i]['text'] as String,
+          ipa: rawItems[i]['ipa'] as String?,
+          hint: rawItems[i]['hint'] as String?,
+        ),
+    ];
   }
 
   /// Persist [sessionItems] to the lobby so all members can fetch them.
