@@ -302,7 +302,10 @@ def generate_ai_feedback(
     resp = client.models.generate_content(
         model=settings.gemini_model,
         contents=prompt,
-        config=types.GenerateContentConfig(response_mime_type="application/json"),
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            temperature=0.4,
+        ),
     )
 
     try:
