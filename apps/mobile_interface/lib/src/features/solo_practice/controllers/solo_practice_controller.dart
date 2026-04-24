@@ -152,6 +152,13 @@ class SoloPracticeController {
     return false;
   }
 
+  /// Clears AI suggestions and error state for the current card so the button
+  /// reappears after a retry.
+  void clearAiSuggestionsForCurrentCard() {
+    _aiSuggestions.remove(currentCardIndex);
+    aiSuggestionsFailed = false;
+  }
+
   /// Returns the cached AI suggestions for [index], or null if none yet.
   List<String>? aiSuggestionsFor(int index) => _aiSuggestions[index];
 

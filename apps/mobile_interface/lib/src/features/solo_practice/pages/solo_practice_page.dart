@@ -213,6 +213,7 @@ class _SoloPracticePageState extends State<SoloPracticePage>
   void _onFeedbackRetry() {
     _clearRecording();
     setState(() {
+      _controller.clearAiSuggestionsForCurrentCard();
       _controller.setFeedback(null);
       _controller.retry(); // mic back to idle (state 0)
     });
@@ -765,7 +766,7 @@ class _SoloPracticePageState extends State<SoloPracticePage>
 bool _isLowScore(PronunciationFeedbackMock f) {
   final score = f.pronScore ??
       (f.accuracyScore + f.fluencyScore + f.completenessScore) / 3;
-  return score < 60;
+  return score < 75;
 }
 
 // ---------------------------------------------------------------------------
@@ -817,51 +818,10 @@ class _AiTipsSectionState extends State<_AiTipsSection> {
       fontWeight: FontWeight.w500,
     );
 
-    // Suggestions already loaded — render them permanently.
+    // Suggestions already loaded — render one-at-a-time carousel.
     final suggestions = widget.controller.aiSuggestionsFor(widget.cardIndex);
     if (suggestions != null && suggestions.isNotEmpty) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          color: AppColors.primaryBg,
-          borderRadius: BorderRadius.circular(AppRadii.md),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'AI Tips',
-              style: GoogleFonts.inter(
-                color: AppColors.textPrimary,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.4,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            for (final s in suggestions) ...[
-              const SizedBox(height: 4),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 3),
-                    child: Icon(
-                      Icons.arrow_right_rounded,
-                      size: 16,
-                      color: AppColors.accent,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(child: Text(s, style: bodyStyle)),
-                ],
-              ),
-            ],
-          ],
-        ),
-      );
+      return _AiTipsCarousel(suggestions: suggestions);
     }
 
     // Loading spinner — local flag prevents double-tap.
@@ -934,6 +894,171 @@ class _AiTipsSectionState extends State<_AiTipsSection> {
           padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         ),
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// AI tips carousel — one sentence at a time, prev/next navigation
+// ---------------------------------------------------------------------------
+
+class _AiTipsCarousel extends StatefulWidget {
+  const _AiTipsCarousel({required this.suggestions});
+  final List<String> suggestions;
+
+  @override
+  State<_AiTipsCarousel> createState() => _AiTipsCarouselState();
+}
+
+class _AiTipsCarouselState extends State<_AiTipsCarousel>
+    with SingleTickerProviderStateMixin {
+  int _index = 0;
+  late AnimationController _fadeCtrl;
+  late Animation<double> _fade;
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+      value: 1.0,
+    );
+    _fade = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
+  }
+
+  @override
+  void dispose() {
+    _fadeCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _go(int next) async {
+    await _fadeCtrl.animateTo(0, duration: const Duration(milliseconds: 120));
+    if (!mounted) return;
+    setState(() => _index = next);
+    _fadeCtrl.forward();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final total = widget.suggestions.length;
+    final hasPrev = _index > 0;
+    final hasNext = _index < total - 1;
+
+    final labelStyle = GoogleFonts.inter(
+      color: AppColors.accent,
+      fontSize: 11,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 0.8,
+    );
+    final tipStyle = GoogleFonts.publicSans(
+      color: AppColors.textPrimary,
+      fontSize: 14,
+      fontWeight: FontWeight.w500,
+      height: 1.45,
+    );
+    final navStyle = GoogleFonts.inter(
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header row: label + step indicator
+        Row(
+          children: [
+            Text('AI TIP', style: labelStyle),
+            const Spacer(),
+            Text(
+              '${_index + 1} / $total',
+              style: GoogleFonts.inter(
+                color: AppColors.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+
+        // Animated tip text — fixed min-height to avoid layout jump
+        ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 52),
+          child: FadeTransition(
+            opacity: _fade,
+            child: Text(
+              widget.suggestions[_index],
+              style: tipStyle,
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+
+        // Dot indicators + prev/next controls
+        Row(
+          children: [
+            // Prev
+            AnimatedOpacity(
+              duration: const Duration(milliseconds: 180),
+              opacity: hasPrev ? 1.0 : 0.25,
+              child: GestureDetector(
+                onTap: hasPrev ? () => _go(_index - 1) : null,
+                child: Row(
+                  children: [
+                    Icon(Icons.arrow_back_ios_rounded,
+                        size: 13, color: AppColors.accent),
+                    const SizedBox(width: 2),
+                    Text('Prev', style: navStyle.copyWith(color: AppColors.accent)),
+                  ],
+                ),
+              ),
+            ),
+
+            const Spacer(),
+
+            // Dot strip
+            Row(
+              children: [
+                for (int i = 0; i < total; i++)
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOut,
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    width: i == _index ? 16 : 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: i == _index
+                          ? AppColors.accent
+                          : AppColors.border,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+              ],
+            ),
+
+            const Spacer(),
+
+            // Next
+            AnimatedOpacity(
+              duration: const Duration(milliseconds: 180),
+              opacity: hasNext ? 1.0 : 0.25,
+              child: GestureDetector(
+                onTap: hasNext ? () => _go(_index + 1) : null,
+                child: Row(
+                  children: [
+                    Text('Next', style: navStyle.copyWith(color: AppColors.accent)),
+                    const SizedBox(width: 2),
+                    Icon(Icons.arrow_forward_ios_rounded,
+                        size: 13, color: AppColors.accent),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
