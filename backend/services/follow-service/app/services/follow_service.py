@@ -35,6 +35,9 @@ class FollowService:
     async def list_blocked_ids(self, user_id: UUID) -> list[str]:
         return await self.repo.list_blocked_ids(user_id)
 
+    async def list_blocked(self, user_id: UUID):
+        return await self.repo.list_blocked(user_id)
+
     async def delete_account(self, user_id: UUID) -> None:
         """
         Delete all follow relationships for a user (both as follower and followee).

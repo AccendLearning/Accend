@@ -94,6 +94,14 @@ async def unblock_user(
     return FollowWriteResponse(ok=True)
 
 
+@router.get("/blocked", response_model=list[SocialUserOut])
+async def list_blocked(
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+    svc: FollowService = Depends(get_follow_service),
+):
+    return await svc.list_blocked(_get_user_id(x_user_id))
+
+
 @router.get("/blocked-ids", response_model=list[str])
 async def list_blocked_ids(
     x_user_id: str | None = Header(default=None, alias="X-User-Id"),

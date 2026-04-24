@@ -9,7 +9,7 @@ Future<void> showSocialUserProfilePopup({
   required BuildContext context,
   required SocialUser user,
   required VoidCallback onPrimaryAction,
-  required VoidCallback onAvoidAction,
+  required void Function(bool shouldBlock) onAvoidAction,
 }) {
   return showDialog<void>(
     context: context,
@@ -31,7 +31,7 @@ class _SocialUserProfilePopup extends StatefulWidget {
 
   final SocialUser user;
   final VoidCallback onPrimaryAction;
-  final VoidCallback onAvoidAction;
+  final void Function(bool shouldBlock) onAvoidAction;
 
   @override
   State<_SocialUserProfilePopup> createState() => _SocialUserProfilePopupState();
@@ -282,8 +282,9 @@ class _SocialUserProfilePopupState extends State<_SocialUserProfilePopup> {
                       height: 48,
                       child: ElevatedButton.icon(
                         onPressed: () {
-                          setState(() => _isBlocked = !_isBlocked);
-                          widget.onAvoidAction();
+                          final shouldBlock = !_isBlocked;
+                          setState(() => _isBlocked = shouldBlock);
+                          widget.onAvoidAction(shouldBlock);
                         },
                         icon: Icon(
                           isBlocked ? Icons.block_rounded : Icons.person_off_rounded,

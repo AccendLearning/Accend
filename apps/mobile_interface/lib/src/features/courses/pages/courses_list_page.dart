@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../../../app/constants.dart';
 import '../../../app/routes.dart';
+import '../../../common/widgets/bottom_nav_bar.dart';
 
 import '../controllers/courses_controller.dart';
 import '../models/course.dart';
@@ -156,6 +157,16 @@ class _CoursesListPageState extends State<CoursesListPage> {
           ),
           const SizedBox(width: 6),
         ],
+      ),
+      bottomNavigationBar: BottomNavBar(
+        selectedIndex: 1,
+        onDestinationSelected: (i) {
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            AppRoutes.shell,
+            (_) => false,
+            arguments: i,
+          );
+        },
       ),
       body: SafeArea(
         child: Padding(
