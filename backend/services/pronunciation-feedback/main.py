@@ -269,14 +269,24 @@ A learner just completed a pronunciation assessment.
 Full assessment JSON:
 {assessment_json}
 
-Based on this data, give exactly 2 to 3 short, actionable sentences of specific
-improvement advice tailored to the learner's weakest areas (low-accuracy phonemes,
-substitutions, omissions, fluency gaps, or prosody issues if present).
+Identify the ACTUAL errors in the data, then give exactly 2 to 3 short, actionable sentences addressing them.
 
-CRITICAL OUTPUT RULES — follow every one:
+Error priority — address in this order, stopping once you have 2–3 tips:
+1. Substitutions on stressed vowels or word-medial phonemes — these change how the word sounds most noticeably to a listener (e.g. saying "prEEshure" instead of "prEshure" because the vowel was wrong).
+2. Omissions: words with errorType "Omission" — skipped words.
+3. Other substitutions: user_said differs from symbol on consonants or unstressed positions.
+4. Low-accuracy phonemes: accuracy < 60 that are NOT substitutions.
+5. Weak final consonants or unstressed phonemes: only if no higher-priority errors remain — these are the least perceptually impactful.
+
+CRITICAL — errors only:
+- Only mention phonemes or words that have a real problem in the data (accuracy < 85, substitution, or omission).
+- Do NOT mention phonemes or words that scored ≥ 85 or have no errorType — do not invent problems.
+- Focus on the 2–3 worst issues maximum. Do not try to cover everything.
+
+CRITICAL OUTPUT RULES:
 - NEVER use ARPAbet or IPA symbols in your output (no "ae", "dh", "th", "iy", slashes, brackets, etc.).
-- Describe sounds using plain everyday English: "the 'uh' sound in 'cup'", "the soft 'th' in 'the'", "the long 'ee' in 'feet'".
-- Reference the actual words from the sentence the learner said, not abstract phoneme codes.
+- Describe sounds using plain everyday English: "the 'uh' sound in 'cup'", "the 'sh' in 'pressure'", "the long 'ee' in 'feet'".
+- Always reference the actual word from the sentence, not just the sound in isolation.
 - Each sentence must be under 20 words.
 - Be encouraging but direct.
 - Do not use markdown, bullet points, or numbering — just plain sentences.
