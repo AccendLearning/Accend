@@ -261,8 +261,8 @@ def _build_feedback_prompt(
     return f"""You are an English pronunciation coach giving brief, encouraging feedback.
 
 A learner just completed a pronunciation assessment.
-{reference_line}Key for the JSON below:
-- Phoneme symbols are ARPAbet (e.g. "th", "dh", "ae", "iy"). "symbol" is the target phoneme; "user_said" is what the learner actually produced.
+{reference_line}Key for the JSON below (use this to understand the data only — never output these codes):
+- Phoneme symbols are ARPAbet (e.g. "th", "dh", "ae", "iy"). "symbol" is the target phoneme; "user_said" is what the learner actually produced. Use these to understand what went wrong, but describe the issue in plain English in your output.
 - Scores are 0–100: ≥85 is good, 60–84 is borderline, <60 is poor.
 - errorType values: "None" = correct, "Omission" = word skipped, "Insertion" = extra word, "Mispronunciation" = wrong sounds.
 
@@ -272,9 +272,15 @@ Full assessment JSON:
 Based on this data, give exactly 2 to 3 short, actionable sentences of specific
 improvement advice tailored to the learner's weakest areas (low-accuracy phonemes,
 substitutions, omissions, fluency gaps, or prosody issues if present).
-Each sentence must be under 20 words. Be encouraging but direct.
-Do not repeat generic advice — address the actual errors by name (e.g. specific phonemes or words).
-Do not use markdown, bullet points, or numbering — just plain sentences.
+
+CRITICAL OUTPUT RULES — follow every one:
+- NEVER use ARPAbet or IPA symbols in your output (no "ae", "dh", "th", "iy", slashes, brackets, etc.).
+- Describe sounds using plain everyday English: "the 'uh' sound in 'cup'", "the soft 'th' in 'the'", "the long 'ee' in 'feet'".
+- Reference the actual words from the sentence the learner said, not abstract phoneme codes.
+- Each sentence must be under 20 words.
+- Be encouraging but direct.
+- Do not use markdown, bullet points, or numbering — just plain sentences.
+
 Return ONLY valid JSON in exactly this shape, with no extra text:
 {{"suggestions": ["sentence 1", "sentence 2", "sentence 3"]}}"""
 
