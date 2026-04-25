@@ -1130,11 +1130,43 @@ class _ProfileHero extends StatelessWidget {
                   const Icon(Icons.local_fire_department_rounded, color: AppColors.action, size: 18),
                   const SizedBox(width: 6),
                   Text(
-                      '${data.currentStreak} Day Streak',
+                    '${data.currentStreak} Day Streak',
                     style: GoogleFonts.inter(
                       color: AppColors.textSecondary,
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    '·',
+                    style: GoogleFonts.inter(
+                      color: AppColors.textSecondary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Icon(
+                    data.reputation >= 0 ? Icons.thumb_up_rounded : Icons.thumb_down_rounded,
+                    size: 15,
+                    color: data.reputation > 0
+                        ? const Color(0xFF22C55E)
+                        : data.reputation < 0
+                            ? AppColors.failure
+                            : AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    data.reputation > 0 ? '+${data.reputation}' : '${data.reputation}',
+                    style: GoogleFonts.inter(
+                      color: data.reputation > 0
+                          ? const Color(0xFF22C55E)
+                          : data.reputation < 0
+                              ? AppColors.failure
+                              : AppColors.textSecondary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],

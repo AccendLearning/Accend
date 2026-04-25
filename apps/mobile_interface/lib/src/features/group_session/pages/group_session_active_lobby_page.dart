@@ -11,6 +11,7 @@ import '../controllers/group_session_controller.dart';
 import '../models/private_lobby.dart';
 import '../widgets/quit_group_session_back_button.dart';
 import 'package:mobile_interface/src/features/courses/models/lesson_item.dart';
+import 'package:mobile_interface/src/features/social/controllers/social_controller.dart';
 
 class GroupSessionActiveLobbyPage extends StatefulWidget {
   const GroupSessionActiveLobbyPage({super.key});
@@ -438,6 +439,13 @@ class _GroupSessionActiveLobbyPageState extends State<GroupSessionActiveLobbyPag
                       currentPlayerId: currentPlayer?.userId,
                       scoresByPlayer: scoresByPlayer,
                       newlyPlantedFlags: _newlyPlantedFlags,
+                      profileImages: {
+                        for (final u in [
+                          ...context.watch<SocialController>().followers,
+                          ...context.watch<SocialController>().following,
+                        ])
+                          u.id: u.profileImageUrl,
+                      },
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -561,6 +569,7 @@ class _TurnMountainView extends StatelessWidget {
     required this.currentPlayerId,
     required this.scoresByPlayer,
     required this.newlyPlantedFlags,
+    required this.profileImages,
   });
 
   final List<PrivateLobby> players;
@@ -568,6 +577,7 @@ class _TurnMountainView extends StatelessWidget {
   final String? currentPlayerId;
   final Map<String, double> scoresByPlayer;
   final Set<String> newlyPlantedFlags;
+  final Map<String, String?> profileImages;
 
   @override
   Widget build(BuildContext context) {
@@ -614,6 +624,7 @@ class _TurnMountainView extends StatelessWidget {
                     label: p.displayName,
                     isCurrent: isCurrent,
                     color: _playerColor(i),
+                    imageUrl: profileImages[p.userId],
                   ),
                 );
               }),
@@ -720,11 +731,13 @@ class _PlayerOrderItem extends StatelessWidget {
     required this.label,
     required this.isCurrent,
     required this.color,
+    this.imageUrl,
   });
 
   final String label;
   final bool isCurrent;
   final Color color;
+  final String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -750,11 +763,13 @@ class _PlayerOrderItem extends StatelessWidget {
                   ]
                 : null,
           ),
-          child: Icon(
-            Icons.person_outline_rounded,
-            color: color,
-            size: 17,
-          ),
+          child: imageUrl != null && imageUrl!.isNotEmpty
+              ? ClipOval(child: Image.network(imageUrl!, fit: BoxFit.cover, width: 30, height: 30))
+              : Icon(
+                  Icons.person_outline_rounded,
+                  color: color,
+                  size: 17,
+                ),
         ),
         const SizedBox(width: 8),
         Text(

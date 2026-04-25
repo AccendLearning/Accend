@@ -8,6 +8,9 @@ import '../../../common/services/auth_service.dart';
 import '../../social/controllers/social_controller.dart';
 import '../models/private_lobby.dart';
 
+// Vote state per participant within a single session.
+enum _VoteState { none, upvoted, downvoted }
+
 class GroupPostSessionPage extends StatefulWidget {
   const GroupPostSessionPage({super.key, required this.participants});
 
@@ -19,24 +22,23 @@ class GroupPostSessionPage extends StatefulWidget {
 
 class _GroupPostSessionPageState extends State<GroupPostSessionPage> {
   late final List<PrivateLobby> _participants;
+  // Tracks vote state per participant userId for this session.
+  final Map<String, _VoteState> _votes = {};
 
   @override
   void initState() {
     super.initState();
-    // Filter and load are deferred to didChangeDependencies where context is safe.
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Only runs once because _participants is late final.
     if (!_isInitialized) {
       _isInitialized = true;
       final currentUserId = context.read<AuthService>().currentUser?.id;
       _participants = widget.participants
           .where((p) => p.userId != currentUserId)
           .toList();
-      // Ensure the following list is up to date so initial button states are correct.
       context.read<SocialController>().load();
     }
   }
@@ -66,6 +68,53 @@ class _GroupPostSessionPageState extends State<GroupPostSessionPage> {
       await social.unblock(userId);
     } else {
       await social.block(userId);
+    }
+  }
+
+  Future<void> _handleVote(String userId, bool isUpvote) async {
+    final social = context.read<SocialController>();
+    final current = _votes[userId] ?? _VoteState.none;
+
+    int delta;
+    _VoteState next;
+
+    if (isUpvote) {
+      switch (current) {
+        case _VoteState.none:
+          delta = 1;
+          next = _VoteState.upvoted;
+        case _VoteState.upvoted:
+          // Toggle off
+          delta = -1;
+          next = _VoteState.none;
+        case _VoteState.downvoted:
+          // Flip from down to up: cancel -1 and add +1 = net +2
+          delta = 2;
+          next = _VoteState.upvoted;
+      }
+    } else {
+      switch (current) {
+        case _VoteState.none:
+          delta = -1;
+          next = _VoteState.downvoted;
+        case _VoteState.downvoted:
+          // Toggle off
+          delta = 1;
+          next = _VoteState.none;
+        case _VoteState.upvoted:
+          // Flip from up to down: cancel +1 and add -1 = net -2
+          delta = -2;
+          next = _VoteState.downvoted;
+      }
+    }
+
+    setState(() => _votes[userId] = next);
+
+    try {
+      await social.vote(userId, delta);
+    } catch (_) {
+      // Revert optimistic update on failure
+      setState(() => _votes[userId] = current);
     }
   }
 
@@ -107,17 +156,26 @@ class _GroupPostSessionPageState extends State<GroupPostSessionPage> {
                         separatorBuilder: (_, __) => const SizedBox(height: 12),
                         itemBuilder: (context, index) {
                           final p = _participants[index];
-                        final isFollowing = social.following
+                          final isFollowing = social.following
                               .any((u) => u.id == p.userId);
                           final isBlocked = social.blockedIds.contains(p.userId);
+                          final voteState = _votes[p.userId] ?? _VoteState.none;
+                          final knownUser = [
+                            ...social.followers,
+                            ...social.following,
+                          ].where((u) => u.id == p.userId).firstOrNull;
                           return _ParticipantCard(
                             username: p.username,
+                            profileImageUrl: knownUser?.profileImageUrl,
                             isFollowing: isFollowing,
                             isBlocked: isBlocked,
+                            voteState: voteState,
                             onFollowTap: () =>
                                 _toggleFollow(context, p.userId, isFollowing),
                             onAvoidTap: () =>
                                 _toggleBlock(context, p.userId, isBlocked),
+                            onUpvoteTap: () => _handleVote(p.userId, true),
+                            onDownvoteTap: () => _handleVote(p.userId, false),
                           );
                         },
                       ),
@@ -161,15 +219,23 @@ class _ParticipantCard extends StatelessWidget {
     required this.username,
     required this.isFollowing,
     required this.isBlocked,
+    required this.voteState,
     required this.onFollowTap,
     required this.onAvoidTap,
+    required this.onUpvoteTap,
+    required this.onDownvoteTap,
+    this.profileImageUrl,
   });
 
   final String username;
+  final String? profileImageUrl;
   final bool isFollowing;
   final bool isBlocked;
+  final _VoteState voteState;
   final VoidCallback onFollowTap;
   final VoidCallback onAvoidTap;
+  final VoidCallback onUpvoteTap;
+  final VoidCallback onDownvoteTap;
 
   @override
   Widget build(BuildContext context) {
@@ -184,7 +250,7 @@ class _ParticipantCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _Avatar(username: username),
+          _Avatar(username: username, imageUrl: profileImageUrl),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -195,6 +261,20 @@ class _ParticipantCard extends StatelessWidget {
               ),
               overflow: TextOverflow.ellipsis,
             ),
+          ),
+          const SizedBox(width: 8),
+          _VoteButton(
+            icon: Icons.thumb_up_rounded,
+            active: voteState == _VoteState.upvoted,
+            activeColor: const Color(0xFF22C55E),
+            onTap: onUpvoteTap,
+          ),
+          const SizedBox(width: 6),
+          _VoteButton(
+            icon: Icons.thumb_down_rounded,
+            active: voteState == _VoteState.downvoted,
+            activeColor: AppColors.failure,
+            onTap: onDownvoteTap,
           ),
           const SizedBox(width: 8),
           SizedBox(
@@ -213,9 +293,9 @@ class _ParticipantCard extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                minimumSize: const Size(96, 36),
+                minimumSize: const Size(86, 36),
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
                 textStyle: GoogleFonts.montserrat(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -241,9 +321,9 @@ class _ParticipantCard extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                minimumSize: const Size(96, 36),
+                minimumSize: const Size(76, 36),
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
                 textStyle: GoogleFonts.montserrat(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -258,10 +338,50 @@ class _ParticipantCard extends StatelessWidget {
   }
 }
 
+class _VoteButton extends StatelessWidget {
+  const _VoteButton({
+    required this.icon,
+    required this.active,
+    required this.activeColor,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final bool active;
+  final Color activeColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: active ? activeColor.withValues(alpha: 0.15) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: active ? activeColor : AppColors.border,
+            width: 1,
+          ),
+        ),
+        child: Icon(
+          icon,
+          size: 17,
+          color: active ? activeColor : AppColors.textSecondary,
+        ),
+      ),
+    );
+  }
+}
+
 class _Avatar extends StatelessWidget {
-  const _Avatar({required this.username});
+  const _Avatar({required this.username, this.imageUrl});
 
   final String username;
+  final String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -275,16 +395,24 @@ class _Avatar extends StatelessWidget {
         shape: BoxShape.circle,
         color: AppColors.inputFill,
         border: Border.all(color: AppColors.accent, width: 1.5),
+        image: imageUrl != null && imageUrl!.isNotEmpty
+            ? DecorationImage(
+                image: NetworkImage(imageUrl!),
+                fit: BoxFit.cover,
+              )
+            : null,
       ),
       alignment: Alignment.center,
-      child: Text(
-        initial,
-        style: GoogleFonts.montserrat(
-          color: AppColors.accent,
-          fontSize: 16,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
+      child: imageUrl == null || imageUrl!.isEmpty
+          ? Text(
+              initial,
+              style: GoogleFonts.montserrat(
+                color: AppColors.accent,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
+            )
+          : null,
     );
   }
 }

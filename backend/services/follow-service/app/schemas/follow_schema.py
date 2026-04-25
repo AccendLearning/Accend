@@ -14,6 +14,7 @@ class SocialUserOut(BaseModel):
     overall_accuracy: float = 0.0
     lessons_completed: int = 0
     meters_climbed: int = 0
+    reputation: int = 0
     i_follow: bool
     follows_me: bool
     i_block: bool = False
@@ -27,3 +28,11 @@ class FollowWriteResponse(BaseModel):
 class FollowCountsOut(BaseModel):
     followers: int
     following: int
+
+
+class VoteRequest(BaseModel):
+    delta: int
+
+
+class ReputationOut(BaseModel):
+    reputation: int

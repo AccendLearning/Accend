@@ -38,6 +38,21 @@ class FollowService:
     async def list_blocked(self, user_id: UUID):
         return await self.repo.list_blocked(user_id)
 
+    async def vote(self, voter_id: UUID, target_id: UUID, delta: int) -> None:
+        """
+        Apply a reputation delta to target_id's user_stats.reputation.
+
+        delta must be -2, -1, +1, or +2 (the UI controls net delta when
+        switching vote direction).
+        """
+        if voter_id == target_id:
+            from app.utils.errors import bad_request
+            bad_request("cannot vote for yourself")
+        await self.repo.apply_vote_delta(target_id, delta)
+
+    async def get_own_reputation(self, user_id: UUID) -> int:
+        return await self.repo.get_own_reputation(user_id)
+
     async def delete_account(self, user_id: UUID) -> None:
         """
         Delete all follow relationships for a user (both as follower and followee).

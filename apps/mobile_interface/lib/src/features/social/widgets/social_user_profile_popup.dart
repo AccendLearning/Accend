@@ -110,24 +110,81 @@ class _SocialUserProfilePopupState extends State<_SocialUserProfilePopup> {
                 ),
               ),
               const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0x3307B6D5),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: const Color(0x4C07B6D5)),
-                ),
-                child: Text(
-                  (user.levelLabel?.trim().isNotEmpty ?? false)
-                      ? user.levelLabel!.toUpperCase()
-                      : 'LEVEL ##',
-                  style: GoogleFonts.montserrat(
-                    color: AppColors.accent,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.2,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0x3307B6D5),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: const Color(0x4C07B6D5)),
+                    ),
+                    child: Text(
+                      (user.levelLabel?.trim().isNotEmpty ?? false)
+                          ? user.levelLabel!.toUpperCase()
+                          : 'LEVEL ##',
+                      style: GoogleFonts.montserrat(
+                        color: AppColors.accent,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: user.reputation > 0
+                          ? const Color(0x1F22C55E)
+                          : user.reputation < 0
+                              ? AppColors.failure.withValues(alpha: 0.12)
+                              : Colors.white.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: user.reputation > 0
+                            ? const Color(0x4D22C55E)
+                            : user.reputation < 0
+                                ? AppColors.failure.withValues(alpha: 0.4)
+                                : Colors.white.withValues(alpha: 0.15),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          user.reputation >= 0
+                              ? Icons.thumb_up_rounded
+                              : Icons.thumb_down_rounded,
+                          size: 11,
+                          color: user.reputation > 0
+                              ? const Color(0xFF22C55E)
+                              : user.reputation < 0
+                                  ? AppColors.failure
+                                  : AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          user.reputation > 0
+                              ? '+${user.reputation}'
+                              : '${user.reputation}',
+                          style: GoogleFonts.montserrat(
+                            color: user.reputation > 0
+                                ? const Color(0xFF22C55E)
+                                : user.reputation < 0
+                                    ? AppColors.failure
+                                    : AppColors.textSecondary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               Container(

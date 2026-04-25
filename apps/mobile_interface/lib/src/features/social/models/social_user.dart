@@ -11,6 +11,7 @@ class SocialUser {
     required this.overallAccuracy,
     required this.lessonsCompleted,
     required this.metersClimbed,
+    required this.reputation,
     required this.iFollow,
     required this.followsMe,
     required this.iBlock,
@@ -28,6 +29,7 @@ class SocialUser {
   final double overallAccuracy;
   final int lessonsCompleted;
   final int metersClimbed;
+  final int reputation;
   final bool iFollow;
   final bool followsMe;
   final bool iBlock;
@@ -48,6 +50,7 @@ class SocialUser {
       overallAccuracy: (json['overall_accuracy'] as num?)?.toDouble() ?? 0.0,
       lessonsCompleted: (json['lessons_completed'] as num?)?.toInt() ?? 0,
       metersClimbed: (json['meters_climbed'] as num?)?.toInt() ?? (((json['lessons_completed'] as num?)?.toInt() ?? 0) * 100),
+      reputation: (json['reputation'] as num?)?.toInt() ?? 0,
       iFollow: json['i_follow'] == true,
       followsMe: json['follows_me'] == true,
       iBlock: json['i_block'] == true,
@@ -64,6 +67,7 @@ class SocialUser {
     double? overallAccuracy,
     int? lessonsCompleted,
     int? metersClimbed,
+    int? reputation,
     bool? iFollow,
     bool? followsMe,
     bool? iBlock,
@@ -81,6 +85,7 @@ class SocialUser {
       overallAccuracy: overallAccuracy ?? this.overallAccuracy,
       lessonsCompleted: lessonsCompleted ?? this.lessonsCompleted,
       metersClimbed: metersClimbed ?? this.metersClimbed,
+      reputation: reputation ?? this.reputation,
       iFollow: iFollow ?? this.iFollow,
       followsMe: followsMe ?? this.followsMe,
       iBlock: iBlock ?? this.iBlock,

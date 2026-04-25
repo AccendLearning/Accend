@@ -457,13 +457,18 @@ async def profile_page_preload(
             f"{settings.PROGRESS_SERVICE_URL}/daily-activity",
             headers={"X-User-Id": user_id},
         )
-        profile_res, counts_res, goals_res, accuracy_res, lessons_completed_res, activity_res = await asyncio.gather(
+        reputation_req = client.get(
+            f"{settings.FOLLOW_SERVICE_URL}/reputation/me",
+            headers={"X-User-Id": user_id},
+        )
+        profile_res, counts_res, goals_res, accuracy_res, lessons_completed_res, activity_res, reputation_res = await asyncio.gather(
             profile_req,
             counts_req,
             goals_req,
             accuracy_req,
             lessons_completed_req,
             activity_req,
+            reputation_req,
         )
 
     if profile_res.status_code >= 400:
@@ -477,6 +482,8 @@ async def profile_page_preload(
     if lessons_completed_res.status_code >= 400:
         raise HTTPException(status_code=lessons_completed_res.status_code, detail=lessons_completed_res.text)
 
+    reputation = int((reputation_res.json().get("reputation", 0) if reputation_res.status_code < 400 else 0) or 0)
+
     return {
         "profile": profile_res.json(),
         "social": counts_res.json(),
@@ -486,6 +493,7 @@ async def profile_page_preload(
             "lessons_completed": int(lessons_completed_res.json().get("lessons_completed", 0) or 0),
             "meters_climbed": int(lessons_completed_res.json().get("meters_climbed", 0) or 0),
             "level": int(lessons_completed_res.json().get("level", 1) or 1),
+            "reputation": reputation,
         },
         "activity": activity_res.json() if activity_res.status_code < 400 else [],
     }
@@ -1759,6 +1767,59 @@ async def proxy_social_blocked_ids(
     async with httpx.AsyncClient(timeout=10) as client:
         r = await client.get(
             f"{settings.FOLLOW_SERVICE_URL}/blocked-ids",
+            headers={"X-User-Id": user_id},
+        )
+
+    if r.status_code >= 400:
+        raise HTTPException(status_code=r.status_code, detail=r.text)
+
+    return r.json()
+
+
+class VoteReq(BaseModel):
+    """delta must be -2, -1, +1, or +2"""
+    delta: int
+
+
+@app.post("/social/vote/{target_id}")
+async def proxy_social_vote(
+    target_id: str,
+    body: VoteReq,
+    authorization: str | None = Header(default=None),
+):
+    """
+    Cast or update a reputation vote for another user.
+
+    There is no per-voter tracking — each group session allows a fresh vote.
+    delta = +1 (upvote), -1 (downvote), +2/-2 when switching direction.
+    """
+    user_id = verify_supabase_jwt(authorization)
+    if body.delta not in (-2, -1, 1, 2):
+        raise HTTPException(status_code=422, detail="delta must be -2, -1, 1, or 2")
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.post(
+            f"{settings.FOLLOW_SERVICE_URL}/vote/{target_id}",
+            headers={"X-User-Id": user_id},
+            json={"delta": body.delta},
+        )
+
+    if r.status_code >= 400:
+        raise HTTPException(status_code=r.status_code, detail=r.text)
+
+    return r.json()
+
+
+@app.get("/social/reputation/me")
+async def proxy_social_own_reputation(
+    authorization: str | None = Header(default=None),
+):
+    """Return the authenticated user's own reputation score."""
+    user_id = verify_supabase_jwt(authorization)
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.get(
+            f"{settings.FOLLOW_SERVICE_URL}/reputation/me",
             headers={"X-User-Id": user_id},
         )
 

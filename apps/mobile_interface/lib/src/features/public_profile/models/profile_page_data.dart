@@ -19,6 +19,7 @@ class ProfilePageData {
     required this.overallAccuracy,
     required this.lessonsCompleted,
     required this.metersClimbed,
+    required this.reputation,
     required this.dailyActivity,
   });
 
@@ -41,6 +42,7 @@ class ProfilePageData {
   final double overallAccuracy;
   final int lessonsCompleted;
   final int metersClimbed;
+  final int reputation;
   final List<DailyActivity> dailyActivity;
 
   String get displayName => (fullName?.trim().isNotEmpty ?? false) ? fullName!.trim() : username;
@@ -74,6 +76,7 @@ class ProfilePageData {
       overallAccuracy: (stats['overall_accuracy'] as num?)?.toDouble() ?? 0.0,
       lessonsCompleted: (stats['lessons_completed'] as num?)?.toInt() ?? 0,
       metersClimbed: (stats['meters_climbed'] as num?)?.toInt() ?? (((stats['lessons_completed'] as num?)?.toInt() ?? 0) * 100),
+      reputation: (stats['reputation'] as num?)?.toInt() ?? 0,
       dailyActivity: activityList
           .map((item) => DailyActivity(
                 date: item['date']?.toString() ?? '',
