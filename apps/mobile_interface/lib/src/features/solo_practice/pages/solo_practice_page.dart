@@ -38,6 +38,7 @@ class _SoloPracticePageState extends State<SoloPracticePage>
   final AudioPlayer _audioPlayer = AudioPlayer();
   String? _recordingPath;
   bool _isSubmitting = false;
+  bool _isPlaying = false;
   DateTime? _activeStartedAt;
   Duration _accumulatedActive = Duration.zero;
 
@@ -98,6 +99,10 @@ class _SoloPracticePageState extends State<SoloPracticePage>
     _controller = SoloPracticeController(
       items: widget.lesson?.items,
     );
+    _audioPlayer.onPlayerComplete.listen((_) {
+      if (!mounted) return;
+      setState(() => _isPlaying = false);
+    });
     _resumeActiveTimer();
     _initAnimations();
   }
@@ -271,8 +276,11 @@ class _SoloPracticePageState extends State<SoloPracticePage>
     }
     try {
       await _audioPlayer.stop();
+      setState(() => _isPlaying = true);
       await _audioPlayer.play(DeviceFileSource(_recordingPath!));
     } catch (_) {
+      if (!mounted) return;
+      setState(() => _isPlaying = false);
       // Ignore playback errors for now.
     }
   }
@@ -281,6 +289,8 @@ class _SoloPracticePageState extends State<SoloPracticePage>
   void _clearRecording() {
     final path = _recordingPath;
     _recordingPath = null;
+    _audioPlayer.stop();
+    _isPlaying = false;
     if (path == null) return;
     final file = File(path);
     // Best-effort delete; ignore failures.
@@ -702,6 +712,7 @@ class _SoloPracticePageState extends State<SoloPracticePage>
                     // ── Centre: Mic button (always visible) ─────────────────
                     _AnimatedMicButton(
                       micStateIndex: _controller.micStateIndex,
+                      isPlaying: _isPlaying,
                       onPlayRecording: _playRecording,
                       onRecordingStarted: _onRecordingStarted,
                       onRecordingStopped: _onRecordingStopped,
@@ -1074,6 +1085,7 @@ class _AiTipsCarouselState extends State<_AiTipsCarousel>
 class _AnimatedMicButton extends StatefulWidget {
   const _AnimatedMicButton({
     required this.micStateIndex,
+    required this.isPlaying,
     required this.onPlayRecording,
     required this.onRecordingStarted,
     required this.onRecordingStopped,
@@ -1081,6 +1093,7 @@ class _AnimatedMicButton extends StatefulWidget {
   });
 
   final int micStateIndex;
+  final bool isPlaying;
   final VoidCallback onPlayRecording;
   final VoidCallback onRecordingStarted;
   final ValueChanged<String> onRecordingStopped;
@@ -1204,12 +1217,16 @@ class _AnimatedMicButtonState extends State<_AnimatedMicButton>
                     ? IconButton(
                         iconSize: 52,
                         padding: EdgeInsets.zero,
-                        icon: const Icon(
-                          Icons.play_arrow_rounded,
+                        icon: Icon(
+                          widget.isPlaying
+                              ? Icons.pause_rounded
+                              : Icons.play_arrow_rounded,
                           color: AppColors.accent,
                         ),
                         onPressed: widget.onPlayRecording,
-                        tooltip: 'Play recording',
+                        tooltip: widget.isPlaying
+                            ? 'Playing recording'
+                            : 'Play recording',
                       )
                     : Microphone(
                         idleColor: AppColors.accent,
