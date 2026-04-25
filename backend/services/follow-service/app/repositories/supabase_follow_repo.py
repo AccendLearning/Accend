@@ -69,6 +69,7 @@ class SupabaseFollowRepo:
                 overall_accuracy=metrics["accuracy"].get(follower_id, 0.0),
                 lessons_completed=metrics["lessons"].get(follower_id, 0),
                 meters_climbed=metrics["meters"].get(follower_id, 0),
+                reputation=metrics["reputation"].get(follower_id, 0),
             )
             for follower_id in follower_ids
             if follower_id in profiles
@@ -116,6 +117,7 @@ class SupabaseFollowRepo:
                 overall_accuracy=metrics["accuracy"].get(followee_id, 0.0),
                 lessons_completed=metrics["lessons"].get(followee_id, 0),
                 meters_climbed=metrics["meters"].get(followee_id, 0),
+                reputation=metrics["reputation"].get(followee_id, 0),
             )
             for followee_id in followee_ids
             if followee_id in profiles
@@ -185,6 +187,7 @@ class SupabaseFollowRepo:
                 overall_accuracy=metrics["accuracy"].get(row["id"], 0.0),
                 lessons_completed=metrics["lessons"].get(row["id"], 0),
                 meters_climbed=metrics["meters"].get(row["id"], 0),
+                reputation=metrics["reputation"].get(row["id"], 0),
             )
             for row in rows
             if row.get("id")
@@ -322,6 +325,7 @@ class SupabaseFollowRepo:
                 overall_accuracy=metrics["accuracy"].get(bid, 0.0),
                 lessons_completed=metrics["lessons"].get(bid, 0),
                 meters_climbed=metrics["meters"].get(bid, 0),
+                reputation=metrics["reputation"].get(bid, 0),
             )
             for bid in blocked_ids
             if bid in profiles
@@ -356,6 +360,62 @@ class SupabaseFollowRepo:
             "user_blocks",
             params={"blocked_id": f"eq.{user_id}"},
         )
+
+    async def apply_vote_delta(self, target_id: UUID, delta: int) -> None:
+        """
+        Apply a reputation delta (+1 or -1) to a target user's user_stats.reputation.
+
+        Uses read-modify-write. If no stats row exists, inserts one.
+        Self-voting is rejected by the router before reaching here.
+        """
+        rows = await supabase.get(
+            "user_stats",
+            params={
+                "select": "user_id,reputation",
+                "user_id": f"eq.{target_id}",
+                "limit": "1",
+            },
+        )
+        if rows:
+            current = int(rows[0].get("reputation") or 0)
+            await supabase.patch(
+                "user_stats",
+                params={"user_id": f"eq.{target_id}"},
+                json={"reputation": current + delta},
+            )
+        else:
+            try:
+                await supabase.post(
+                    "user_stats",
+                    json={"user_id": str(target_id), "reputation": delta},
+                )
+            except httpx.HTTPStatusError as e:
+                if e.response is not None and e.response.status_code == 409:
+                    rows2 = await supabase.get(
+                        "user_stats",
+                        params={"select": "reputation", "user_id": f"eq.{target_id}", "limit": "1"},
+                    )
+                    current = int(rows2[0].get("reputation") or 0) if rows2 else 0
+                    await supabase.patch(
+                        "user_stats",
+                        params={"user_id": f"eq.{target_id}"},
+                        json={"reputation": current + delta},
+                    )
+                else:
+                    raise
+
+    async def get_own_reputation(self, user_id: UUID) -> int:
+        rows = await supabase.get(
+            "user_stats",
+            params={
+                "select": "reputation",
+                "user_id": f"eq.{user_id}",
+                "limit": "1",
+            },
+        )
+        if not rows:
+            return 0
+        return int(rows[0].get("reputation") or 0)
 
     async def _get_profiles(self, user_ids: list[str]) -> dict[str, dict]:
         rows = await supabase.get(
@@ -424,6 +484,7 @@ class SupabaseFollowRepo:
         overall_accuracy: float,
         lessons_completed: int,
         meters_climbed: int,
+        reputation: int = 0,
     ) -> SocialUserOut:
         display_name = row.get("full_name") or row.get("username") or "Unknown"
         profile_level = row.get("level")
@@ -442,6 +503,7 @@ class SupabaseFollowRepo:
             overall_accuracy=max(0.0, min(100.0, float(overall_accuracy))),
             lessons_completed=max(0, int(lessons_completed)),
             meters_climbed=max(0, int(meters_climbed)),
+            reputation=int(reputation),
             i_follow=i_follow,
             follows_me=follows_me,
             i_block=i_block,
@@ -494,7 +556,7 @@ class SupabaseFollowRepo:
             lessons_rows = await supabase.get(
                 "user_stats",
                 params={
-                    "select": "user_id,lessons_completed,overall_accuracy,meters_climbed,level",
+                    "select": "user_id,lessons_completed,overall_accuracy,meters_climbed,level,reputation",
                     "user_id": self._in_clause(user_ids),
                 },
             )
@@ -506,7 +568,7 @@ class SupabaseFollowRepo:
             lessons_rows = await supabase.get(
                 "user_stats",
                 params={
-                    "select": "user_id,lessons_completed,overall_accuracy,meters_climbed",
+                    "select": "user_id,lessons_completed,overall_accuracy,meters_climbed,reputation",
                     "user_id": self._in_clause(user_ids),
                 },
             )
@@ -548,6 +610,11 @@ class SupabaseFollowRepo:
             for row in lessons_rows
             if row.get("user_id")
         }
+        reputation_map: dict[str, int] = {
+            str(row.get("user_id")): int(row.get("reputation", 0) or 0)
+            for row in lessons_rows
+            if row.get("user_id")
+        }
 
         return {
             "streak": streak_map,
@@ -555,6 +622,7 @@ class SupabaseFollowRepo:
             "lessons": lessons_map,
             "meters": meters_map,
             "level": level_map,
+            "reputation": reputation_map,
         }
 
     @staticmethod

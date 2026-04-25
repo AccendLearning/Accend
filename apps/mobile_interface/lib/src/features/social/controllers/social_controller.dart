@@ -130,6 +130,28 @@ class SocialController extends ChangeNotifier {
     await _setBlockState(userId: userId, blocking: false);
   }
 
+  /// Vote for or against a participant. [delta] is +1/-1 on first tap,
+  /// +2/-2 when switching direction, or the reverse value to cancel.
+  Future<void> vote(String targetId, int delta) async {
+    final accessToken = _auth.accessToken;
+    if (accessToken == null || accessToken.isEmpty) {
+      _error = 'You must be logged in to vote.';
+      notifyListeners();
+      return;
+    }
+    try {
+      await _api.postJson(
+        '/social/vote/$targetId',
+        accessToken: accessToken,
+        body: {'delta': delta},
+      );
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      rethrow;
+    }
+  }
+
   List<SocialUser> _filterByQuery(List<SocialUser> source, String query) {
     final q = query.trim().toLowerCase();
     if (q.isEmpty) return source;

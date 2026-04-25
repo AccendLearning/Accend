@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 
 from app.dependencies import get_follow_service
-from app.schemas.follow_schema import FollowCountsOut, FollowWriteResponse, SocialUserOut
+from app.schemas.follow_schema import FollowCountsOut, FollowWriteResponse, ReputationOut, SocialUserOut, VoteRequest
 from app.services.follow_service import FollowService
 
 
@@ -123,3 +123,35 @@ async def delete_account(
     """
     await svc.delete_account(_get_user_id(x_user_id))
     return None
+
+
+@router.post("/vote/{target_id}", response_model=FollowWriteResponse)
+async def vote_user(
+    target_id: UUID,
+    body: VoteRequest,
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+    svc: FollowService = Depends(get_follow_service),
+):
+    """
+    Apply an upvote (+1) or downvote (-1) to target_id's reputation.
+
+    delta must be in {-2, -1, 1, 2}.  The client tracks vote state and
+    sends the correct net delta (e.g. +2 to flip from downvote to upvote).
+    There is no per-voter tracking — each group session allows a fresh vote.
+    """
+    user_id = _get_user_id(x_user_id)
+    if body.delta not in {-2, -1, 1, 2}:
+        raise HTTPException(status_code=422, detail="delta must be -2, -1, 1, or 2")
+    await svc.vote(user_id, target_id, body.delta)
+    return FollowWriteResponse(ok=True)
+
+
+@router.get("/reputation/me", response_model=ReputationOut)
+async def get_own_reputation(
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+    svc: FollowService = Depends(get_follow_service),
+):
+    """Return the authenticated user's current reputation score."""
+    user_id = _get_user_id(x_user_id)
+    reputation = await svc.get_own_reputation(user_id)
+    return ReputationOut(reputation=reputation)
