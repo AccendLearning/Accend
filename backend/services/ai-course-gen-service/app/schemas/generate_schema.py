@@ -26,6 +26,36 @@ from pydantic import BaseModel, Field
 from typing import List, Literal, Optional
 
 
+ImageBucket = Literal[
+    "business",
+    "travel",
+    "grammar",
+    "pronunciation",
+    "conversation",
+    "vocabulary",
+    "reading",
+    "writing",
+    "listening",
+    "interview_workplace",
+    "academic",
+    "presentation",
+    "healthcare",
+    "restaurant_dining",
+    "shopping",
+    "customer_service",
+    "phone_calls",
+    "social_small_talk",
+    "dating_relationships",
+    "family_parenting",
+    "housing_daily_life",
+    "transportation",
+    "emergencies",
+    "technology",
+    "sports_fitness",
+    "entertainment_media",
+]
+
+
 class LessonItem(BaseModel):
     """
     Represents a single pronunciation prompt inside a lesson.
@@ -88,6 +118,7 @@ class GenerateCourseRes(BaseModel):
 
     Fields:
     - title: Generated course title
+    - image_bucket: Selected course image bucket
     - image_url: Selected course cover image URL
     - lessons: List of generated lessons, each with items
 
@@ -99,6 +130,7 @@ class GenerateCourseRes(BaseModel):
         3. Insert lessons and lesson items
     """
     title: str
+    image_bucket: Optional[ImageBucket] = None
     image_url: Optional[str] = None
     lessons: List[Lesson] = Field(default_factory=list)
 

@@ -35,12 +35,12 @@ import json
 import os
 import re
 import textwrap
-from typing import List
+from typing import List, get_args
 
 from google import genai
 from google.genai import types
 
-from ..schemas.generate_schema import Lesson, LessonItem
+from ..schemas.generate_schema import ImageBucket, Lesson, LessonItem
 from .image_selection_service import select_course_image
 from ..clients.supabase import rest_get
 
@@ -51,6 +51,8 @@ _MAX_TARGET_PHONEMES = 5
 # Minimum practice attempts required for a phoneme to be considered meaningful data.
 # Phonemes below this threshold are excluded unless no others are available.
 _MIN_ATTEMPTS_PREFERRED = 3
+
+_VALID_IMAGE_BUCKETS = set(get_args(ImageBucket))
 
 
 # -------------------------
@@ -99,6 +101,7 @@ Return ONLY valid JSON (no markdown, no backticks, no explanation) in EXACTLY th
 
 {
   "title": string,
+  "image_bucket": string|null,
   "lessons": [
     {
       "title": string,
@@ -114,6 +117,8 @@ Non-negotiable Rules:
 - 3 to 8 items per lesson
 - Keep item text short and practical (phrases/words/sentences)
 - Use null for ipa/hint when not provided
+- image_bucket must be one of: business, travel, grammar, pronunciation, conversation, vocabulary, reading, writing, listening, interview_workplace, academic, presentation, healthcare, restaurant_dining, shopping, customer_service, phone_calls, social_small_talk, dating_relationships, family_parenting, housing_daily_life, transportation, emergencies, technology, sports_fitness, entertainment_media
+- Use null for image_bucket when unsure
 - No extra keys anywhere
 - Always use the English language
 - Avoid any acronyms
@@ -154,10 +159,15 @@ def _validate_and_normalize(payload: dict) -> dict:
         raise ValueError("Gemini output is not a JSON object")
 
     title = payload.get("title")
+    image_bucket = payload.get("image_bucket")
     lessons = payload.get("lessons")
 
     if not isinstance(title, str) or not title.strip():
         raise ValueError("Missing/invalid title")
+
+    if image_bucket is not None:
+        if not isinstance(image_bucket, str) or image_bucket not in _VALID_IMAGE_BUCKETS:
+            image_bucket = None
 
     if not isinstance(lessons, list) or len(lessons) == 0:
         raise ValueError("Missing/invalid lessons")
@@ -209,7 +219,8 @@ def _validate_and_normalize(payload: dict) -> dict:
     normalized_title = title.strip()
     return {
         "title": normalized_title,
-        "image_url": select_course_image(normalized_title),
+        "image_bucket": image_bucket,
+        "image_url": select_course_image(normalized_title, image_bucket=image_bucket),
         "lessons": normalized_lessons,
     }
 
@@ -339,7 +350,8 @@ def generate_course_from_prompt(prompt: str) -> dict:
 
         return {
             "title": title,
-            "image_url": select_course_image(title),
+            "image_bucket": None,
+            "image_url": select_course_image(title, image_bucket=None),
             "lessons": [lesson.dict() for lesson in lessons],
         }
 
@@ -597,6 +609,7 @@ def generate_course_from_metrics(user_id: str) -> dict:
 
         return {
             "title": title,
-            "image_url": select_course_image("pronunciation"),
+            "image_bucket": "pronunciation",
+            "image_url": select_course_image(title, image_bucket="pronunciation"),
             "lessons": [lesson.dict() for lesson in lessons],
         }

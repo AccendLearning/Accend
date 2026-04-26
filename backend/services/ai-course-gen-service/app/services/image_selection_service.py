@@ -545,27 +545,52 @@ def _detect_topic(title: str) -> str | None:
     return None
 
 
+def _normalize_bucket(image_bucket: str | None) -> str | None:
+    """
+    Normalize and validate an AI-selected image bucket.
+
+    Returns:
+    - A known topic key when the bucket maps to an existing non-empty pool.
+    - None when the bucket is missing, blank, or unknown.
+    """
+    if image_bucket is None:
+        return None
+
+    bucket = image_bucket.strip()
+    if not bucket:
+        return None
+
+    pool = TOPIC_IMAGE_POOLS.get(bucket)
+    if not pool:
+        return None
+
+    return bucket
+
+
 # -----------------------------------
 # Public API
 # -----------------------------------
 
-def select_course_image(title: str) -> str:
+def select_course_image(title: str, image_bucket: str | None = None) -> str:
     """
     Choose an image URL for a generated course title.
 
     Strategy:
-    1. Detect whether the title clearly matches a known topic.
-    2. If so, choose a stable image from that topic's pool.
-    3. Otherwise choose a stable image from the general fallback pool.
+    1. Prefer a valid AI-selected topic bucket when provided.
+    2. Otherwise detect whether the title clearly matches a known topic.
+    3. If so, choose a stable image from that topic's pool.
+    4. Otherwise choose a stable image from the general fallback pool.
 
     Returns:
     - A non-empty image URL string.
 
     Fallback behavior:
-    - If a topic pool is missing or empty, fall back to the general pool.
+    - If the AI bucket is missing, unknown, or points to an empty pool, fall
+      back to title-based topic detection.
+    - If no topic pool is available, fall back to the general pool.
     """
     safe_title = (title or "").strip() or "untitled course"
-    topic = _detect_topic(safe_title)
+    topic = _normalize_bucket(image_bucket) or _detect_topic(safe_title)
 
     if topic:
         pool = TOPIC_IMAGE_POOLS.get(topic, [])
