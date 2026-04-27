@@ -1,197 +1,127 @@
-# microservices directory
-please containerize ur service using Docker :3
+# Accend Backend
 
-# Accend Backend Architecture
+Microservices and local orchestration for Accend. All services are written in **Python (FastAPI)** and run together via Docker Compose.
 
-## Overview
+## Architecture
 
-Accend uses a microservices architecture with a required API Gateway
-(BFF) and a shared Supabase backend (Postgres + Auth + Storage).
+```
+Flutter App
+  → API Gateway  (JWT verification, request orchestration)
+  → Internal Services  (domain logic)
+  → Supabase  (PostgreSQL + auth)
+```
 
-Architecture Flow:
+The mobile app calls only `api-gateway`. All other services are internal and not exposed to clients.
 
-Flutter App\
-→ (JWT)\
-API Gateway (validates JWT)\
-→ (X-User-Id header)\
-Microservices\
-→\
-Supabase (Postgres + Auth + Storage)
+## Services
 
-The mobile app only calls the Gateway. Services are never called
-directly by Flutter.
+| Service | Responsibility |
+|---------|---------------|
+| `api-gateway` | Public BFF entrypoint. JWT validation, request orchestration. |
+| `user-profile-service` | Profile and onboarding data. |
+| `courses-service` | Course and lesson CRUD, curriculum persistence. |
+| `ai-course-gen-service` | AI-generated courses and session items. |
+| `pronunciation-feedback` | Azure-based pronunciation scoring + Gemini AI coaching tips. |
+| `progress-service` | Daily goals, streaks, minutes practiced, phoneme accuracy history. |
+| `follow-service` | Social graph: follow/unfollow, block, reputation votes. |
+| `group-service` | Private/public lobby lifecycle, turn state, voice token brokering. |
 
-------------------------------------------------------------------------
+## Request and Auth Flow
 
-## JWT Strategy (Gateway-Validated)
+1. Client sends `Authorization: Bearer <JWT>` to the gateway.
+2. Gateway verifies JWT against Supabase JWKS.
+3. Gateway attaches `X-User-Id` header and forwards to the target internal service.
+4. Internal services trust `X-User-Id` — they do not re-verify JWTs.
 
-1.  Flutter authenticates with Supabase Auth.
-2.  Flutter sends: Authorization: Bearer `<JWT>`{=html}
-3.  Gateway:
-    -   Verifies the JWT using Supabase’s JWKS endpoint (https://<project>.supabase.co/auth/v1/.well-known/jwks.json)
-    -   Validates issuer and algorithm (ES256)
-    -   Extracts user_id from the sub claim
-    -   Forwards request internally with header: X-User-Id:
-        `<uuid>`{=html}
+## Data Ownership
 
-Downstream services trust this internal header.
+Each service owns its domain tables. Even though services share a Supabase project, only the owning service writes to its tables. Cross-domain reads go through service APIs, not direct table access.
 
-------------------------------------------------------------------------
+## Feature Flows
 
-## Data Ownership Model
+### Onboarding and Profile
+Gateway routes profile initialization and onboarding patches to `user-profile-service`. Downstream services consume normalized profile fields (daily pace, goals, accent preference) from their own copies or via profile API calls.
 
-We use one shared Supabase database, but:
+### Course Generation
+Three supported generation paths, all orchestrated by the gateway:
+- **Custom prompt**: user-supplied topic or scenario.
+- **Onboarding seed**: triggered on onboarding completion, based on selected goal.
+- **Weak-phoneme**: generated from the user's phoneme accuracy history in `progress-service`.
 
-Each table has exactly one "owner service."
+`ai-course-gen-service` handles generation; `courses-service` owns persistence.
 
-Only the owning service may WRITE to its tables.
+### Solo Pronunciation Pipeline
+1. Gateway proxies WAV audio + reference text to `pronunciation-feedback`.
+2. Service returns summary accuracy + word-level and phoneme-level breakdown.
+3. Gateway exposes a separate AI feedback call (Gemini) that takes scoring results and returns coaching tips.
+4. Progress updates (phoneme batch merge, daily minutes, streak) flow through `progress-service`.
 
-Other services should: - Not write to those tables - Prefer calling the
-owning service's API instead of querying directly
+### Group Session Pipeline
+`group-service` owns lobby lifecycle (private/public), session item sets, and turn state. Gateway exposes turn scoring and vote actions. Voice token issuance is brokered via gateway to keep auth consistent. End-of-session cleanup cascades through dedicated endpoints.
 
-Example ownership:
+### Social and Account Safety
+`follow-service` handles follow/unfollow, block/unblock, blocked ID lists, and reputation votes. Gateway fans out account deletion to all services before deleting the Supabase auth record.
 
-Profile Service → profiles, onboarding data\
-Courses Service → courses, lessons, lesson_items\
-Progress Service → course_progress, daily_minutes, streaks\
-Follow Service → user_follows\
-Group Service → lobbies, sessions, turns, votes
+---
 
-Note: All services use SUPABASE_SERVICE_ROLE_KEY, so ownership is
-enforced by team discipline (not DB permissions in Sprint 1).
+## Local Development
 
-------------------------------------------------------------------------
+### 1. Configure environment
 
-## Required Service Structure
+```bash
+cd backend
+cp .env.example .env
+```
 
-Each service follows this pattern:
+Fill `.env` with your secrets. Required variables:
 
-routers → services → repositories → supabase client
+```
+# Supabase
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_JWKS_URL=
+SUPABASE_JWT_ISSUER=
 
-Responsibilities:
+# Speech and AI
+AZURE_SPEECH_KEY=
+AZURE_SPEECH_REGION=
+GEMINI_API_KEY=
 
-routers/\
-- Handle HTTP request/response only\
-- No database logic
+# Local dev only
+ALLOW_ANON_PRONUNCIATION_ASSESS=true   # skips auth on pronunciation endpoint for testing
+```
 
-services/\
-- Business logic
+Never commit `.env`.
 
-repositories/\
-- The only layer allowed to call Supabase
+### 2. Start the stack
 
-clients/supabase.py\
-- Creates Supabase client using environment variables
+```bash
+docker compose up --build
+```
 
-Routes must NEVER call Supabase directly.
+- Gateway: `http://localhost:8080`
+- Individual services (for debugging): ports `8081`–`8087`
 
-------------------------------------------------------------------------
+### 3. Smoke test
 
-## API Gateway Responsibilities
+```bash
+curl http://localhost:8080/health
+```
 
--   Validate JWT
--   Route requests to services
--   Shape payloads for mobile
--   Provide one-request-per-screen preload endpoints
+### 4. Minimal end-to-end sanity check
 
-Example endpoints:
+1. Confirm gateway health.
+2. Call one profile or course endpoint with a valid JWT.
+3. Run pronunciation assess call with short WAV audio.
+4. Verify logs for gateway -> downstream service handoff.
 
-GET /profile/username-available\
-GET /courses\
-POST /ai/generate-course
+---
 
-Future preload endpoints:
+## Pronunciation Endpoint Reference
 
-GET /home\
-GET /courses-page\
-GET /profile-page
+Use the gateway endpoint, not the internal service directly.
 
-------------------------------------------------------------------------
-
-## Supabase Usage
-
-Flutter uses: - SUPABASE_URL - SUPABASE_ANON_KEY
-
-Backend services use: - SUPABASE_URL - SUPABASE_SERVICE_ROLE_KEY -
-SUPABASE_JWT_SECRET
-
-The service role key must never be exposed to Flutter.
-
-------------------------------------------------------------------------
-
-## Screen Preloading Rule (BFF Pattern)
-
-Each major mobile screen must load with one Gateway request.
-
-Examples:
-
-/home → username, streak, today's goal\
-/courses-page → course summaries + progress\
-/profile-page → stats + social counts
-
-Gateway aggregates data from multiple services and returns a single DTO.
-
-------------------------------------------------------------------------
-
-## Backend Folder Structure
-
-backend/ services/ api-gateway/ courses-service/ ai-course-gen-service/
-user-profile-service/ pronunciation-feedback/ group-service/ follow-service/
-progress-service/ app/ routers/ services/ repositories/ clients/ schemas/
-
-shared/ auth/ http/ logging.py
-
-------------------------------------------------------------------------
-
-## Where to put credentials
-
-Put all secrets in **one file**: `backend/.env`.
-
-1. Copy the example:  
-   `cp .env.example .env`
-2. Edit `backend/.env` and set your real values (Supabase and Azure Speech).
-3. Never commit `.env` (it is in `.gitignore`).
-
-When you run `docker compose up` from `backend/`, Compose passes this `.env` to every service (api-gateway, pronunciation-feedback, etc.), so one file is enough.
-
-------------------------------------------------------------------------
-
-## Pronunciation Feedback microservice
-
-### What it does
-
-`pronunciation-feedback` accepts a WAV upload (max 10 seconds) + `reference_text`, calls Azure Speech Pronunciation Assessment (`en-US`, scripted), and returns a compact JSON payload with:
-
-- `summary`: overall scores
-- `words[]`: per-word accuracy + per-phoneme accuracy
-
-### How the mobile app should call it (through the Gateway)
-
-The Flutter app should call the Gateway endpoint (not the service directly):
-
-- **POST** `http://localhost:8080/pronunciation/assess`
-  - Multipart form fields:
-    - `audio`: WAV file (filename must end with `.wav`)
-    - `reference_text`: the ground truth text the learner should say
-
-The gateway proxies this to `pronunciation-feedback`’s internal `POST /assess`.
-
-### Auth behavior (dev vs prod)
-
-The Gateway route validates the Supabase JWT by default *unless* `ALLOW_ANON_PRONUNCIATION_ASSESS` is enabled (intended for local/dev).
-
-- **ALLOW_ANON_PRONUNCIATION_ASSESS**: set to `true` to allow calling `POST /pronunciation/assess` without a JWT (local/dev only)
-
-### Required environment variables (Azure Speech)
-
-Add these to `backend/.env`:
-
-- `AZURE_SPEECH_KEY`
-- `AZURE_SPEECH_REGION` (e.g. `eastus`)
-
-### Quick test (end-to-end through Gateway)
-
-With the backend stack running (`docker compose up --build` from `backend/`):
+**Assess pronunciation:**
 
 ```bash
 curl -X POST "http://localhost:8080/pronunciation/assess" \
@@ -199,88 +129,50 @@ curl -X POST "http://localhost:8080/pronunciation/assess" \
   -F "reference_text=Hello world"
 ```
 
-## Environment Rules
+- Audio must be WAV, ≤ 10 seconds.
+- Auth is enforced unless `ALLOW_ANON_PRONUNCIATION_ASSESS=true` is set for local testing.
+- Response includes summary, word-level scores, phoneme-level scores, and a `feedback_session_id`.
 
--   .env files are local only
--   Never commit secrets
--   Service role key is backend-only
+**Request AI coaching tips:**
 
-------------------------------------------------------------------------
-
-## Why This Architecture
-
--   Clear service boundaries
--   Scalable heavy services (AI, Speech)
--   Prevents cross-service DB corruption
--   Supports one-call-per-screen preload pattern
--   Easy migration to multi-DB later
-
-### Example
+```bash
+curl -X POST "http://localhost:8080/pronunciation/ai-feedback" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "feedback_session_id": "<id from assess response>",
+    "summary": {"accuracy": 78, "fluency": 70, "completeness": 84, "pronScore": 77},
+    "words": []
+  }'
 ```
-ACCEND/
-├── apps/
-│   └── mobile_interface/
-│
-├── backend/
-│   ├── services/
-│   │   ├── api-gateway/
-│   │   ├── courses-service/
-│   │   ├── ai-course-gen-service/
-│   │   ├── user-profile-service/
-│   │   ├── pronunciation-feedback/
-│   │   ├── group-service/
-│   │   ├── follow-service/
-│   │   ├── progress-service/
-│   │   │   ├── app/
-│   │   │   │   └── main.py
-│   │   │   ├── Dockerfile
-│   │   │   └── requirements.txt
-│   │   │
-│   │   │   ├── app/
-│   │   │   │   ├── main.py
-│   │   │   │   ├── config.py
-│   │   │   │   ├── dependencies.py
-│   │   │   │
-│   │   │   │   ├── routers/
-│   │   │   │   │   └── courses.py
-│   │   │   │
-│   │   │   │   ├── schemas/
-│   │   │   │   │   ├── course_schema.py
-│   │   │   │   │   └── lesson_schema.py
-│   │   │   │
-│   │   │   │   ├── services/
-│   │   │   │   │   └── course_service.py
-│   │   │   │
-│   │   │   │   ├── repositories/
-│   │   │   │   │   ├── course_repo.py              # interface/contract
-│   │   │   │   │   └── supabase_course_repo.py     # router → service → repository → supabase
-│   │   │   │
-│   │   │   │   ├── clients/
-│   │   │   │   │   └── supabase.py
-│   │   │   │
-│   │   │   │   └── utils/
-│   │   │   │       └── errors.py
-│   │   │   ├── tests/
-│   │   │   ├── Dockerfile
-│   │   │   └── requirements.txt
-│   │   ├── ai-service/
-│   │   └── sessions-service/
-│   │
-│   ├── shared/
-│   │   ├── auth/
-│   │   │   └── jwt.py
-│   │   ├── http/
-│   │   │   └── client.py             # shared http helpers
-│   │   └── logging.py
-│   │
-│   └── docker-compose.yml
-│
-├── contracts/
-│   └── openapi/
-│
-├── infra/
-│   ├── supabase/
-│   └── scripts/
-│
-└── README.md
+
+---
+
+## Implementation Pattern
+
+All services follow the same internal layering:
+
+```
+routers → services → repositories → clients
+```
+
+- `routers`: HTTP boundary, request/response mapping.
+- `services`: domain and business logic.
+- `repositories`: persistence (Supabase tables).
+- `clients`: external systems (Azure, Gemini, other internal services).
+
+## Backend Layout
+
+```text
+backend/
+├── docker-compose.yml
+├── .env.example
+└── services/
+    ├── api-gateway/
+    ├── ai-course-gen-service/
+    ├── courses-service/
+    ├── follow-service/
+    ├── group-service/
+    ├── progress-service/
+    ├── pronunciation-feedback/
+    └── user-profile-service/
 ```

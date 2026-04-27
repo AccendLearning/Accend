@@ -1,265 +1,109 @@
 # Accend
 
-Accend is an AI-powered language learning experience designed to help users improve pronunciation, confidence, and real-world speaking ability through personalized feedback and engaging practice.
+Accend is a speaking-first English pronunciation app built for anyone who wants to sound more natural, confident, and clear — whether you're a non-native speaker navigating a new country, a student preparing for academic or professional environments, or someone who has always wanted to work on their accent.
 
-Our goal is simple: make speaking practice feel natural, motivating, and effective.
+Most language apps focus on reading and writing. Accend puts speaking first. Every session — whether solo or with other people — is built around opening your mouth, getting AI-graded feedback at the word and phoneme level, and building the kind of confidence that only comes from actual practice.
 
----
+## What Makes Accend Different
 
-## 🌍 What Accend Does
+- **Phoneme-level AI coaching.** Not just "that word was wrong" — Accend breaks down exactly which sound in which word missed, and why, then gives you actionable coaching tips to fix it.
+- **Group practice with real people.** Private lobbies and public matchmaking let you practice with others in a structured turn-based format. Real social pressure, without the embarrassment of real stakes.
+- **Courses built around your goals and weak spots.** AI generates personalized learning content from what users want to learn (onboarding goals and custom prompts) and adapts over time using phoneme performance data.
+- **Speaking-first practice formats.** The app includes repeat-after-me style flashcard exercises, but every format is designed around producing speech and receiving pronunciation feedback.
 
-Accend helps learners:
+## Target Users
 
-* Practice speaking in realistic scenarios
-* Receive intelligent pronunciation feedback
-* Personalize their learning goals and pace
-* Choose the tone of AI feedback that motivates them
-* Track their progress over time
+- Non-native English speakers (immigrants, international students, professionals)
+- Learners who have tried Duolingo or similar apps and found them too passive
 
-The experience adapts to each learner’s level, goals, and preferences from the moment they onboard.
+## Product Features
 
----
+- Guided onboarding that captures native language, learning goals, target accent, and practice preferences.
+- AI-generated custom courses and lessons — seeded from onboarding goals, generated from custom prompts, or built around your phoneme weak spots.
+- Solo pronunciation practice with per-word and per-phoneme scoring, session playback, and AI coaching feedback.
+- Group session flows: private lobby codes, public matchmaking, turn-based mic control, in-session scoring, and post-session actions.
+- Social graph: follow, block/avoid, reputation voting, and public profile discovery.
+- Progress tracking: daily goals, streaks, and persistent phoneme accuracy metrics over time.
 
-## 📱 App Experience
+## How It Works
 
-Users can:
+### Onboarding
+User signs in, completes a short onboarding (native language, goal, focus areas, pace, tone, accent choice), and lands in the main app. Starter courses are seeded automatically in the background based on the selected learning goal.
 
-* Create an account or log in
-* Complete a guided onboarding experience
-* Select:
+### Solo Practice
+User picks a lesson item, records a short audio clip, and receives a scored breakdown — overall accuracy, word-level scores, and phoneme-level detail. AI coaching tips can be requested for concise, targeted guidance. Results feed into long-term phoneme progress metrics that influence future course generation.
 
-  * Current speaking level
-  * Learning goals
-  * Daily practice pace
-  * Preferred AI feedback tone
-  * Target accent
-* Begin personalized speaking practice
+### Group Practice
+User joins via private lobby code or public matchmaking. A generated item set is loaded for all participants. Turn state controls who can speak and when the mic is active. Each turn is scored and reflected in session visuals. Post-session flow includes follow, avoid/block, and reputation voting on other participants.
 
-The app focuses on confidence-building, clarity, and consistent daily improvement.
+### Social and Profiles
+Search users, follow/unfollow, inspect public profiles with learning stats and reputation context. Blocked users are filtered from relevant surfaces.
 
----
-
-## 🏗 Project Structure
-
-This repository is organized into two main parts:
-
-### `/apps`
-
-Contains the Flutter mobile application.
-
-* User interface
-* Onboarding experience
-* Practice sessions
-* Progress tracking
-* Client-side app logic
-
-### `/services`
-
-Contains backend microservices.
-
-* Authentication
-* User profiles
-* Speech processing
-* Feedback generation
-* Data storage and management
-
-This structure allows the mobile app and backend services to evolve independently while working together seamlessly.
-
----
-
-## 🎯 Vision
-
-Accend aims to combine:
-
-* AI-powered feedback
-* Human-like encouragement
-* Structured skill progression
-* Flexible daily commitment
-
-The long-term goal is to create a speaking-first language platform that feels less like a lesson and more like real conversation practice.
-
----
-
-## 🚀 Status
-
-Accend is currently under active development.
-Features and architecture may evolve as the product grows.
-
-## Repo Structure
+## Architecture Overview
 
 ```
-ACCEND/
+Flutter App
+  → API Gateway  (single public entrypoint, JWT verification)
+  → Internal Microservices  (domain logic, each owns its data)
+  → Supabase  (database + auth)
+```
+
+The Flutter app authenticates with Supabase Auth, then communicates exclusively with the API Gateway. The gateway verifies the JWT and forwards identity to internal services. No internal service is exposed to the client directly.
+
+For full architecture and local backend setup, see `backend/README.md`.
+
+## Quick Start
+
+### Mobile app
+
+```bash
+cd apps/mobile_interface
+flutter pub get
+flutter run
+```
+
+### Backend
+
+```bash
+cd backend
+cp .env.example .env
+# Fill in secrets (see backend/README.md)
+docker compose up --build
+```
+
+Point the mobile app to the gateway base URL — typically `http://localhost:8080` for local development.
+
+If you are completely new to this repo, start here:
+
+1. Launch backend (`backend/` + Docker Compose).
+2. Launch mobile app (`apps/mobile_interface` + Flutter run).
+3. Create/sign in account and complete onboarding.
+4. Test one solo lesson and one group flow to understand end-to-end behavior.
+
+## Repository Layout
+
+```text
+Accend/
 ├── apps/
-│   └── mobile_interface/
-│
+│   └── mobile_interface/     # Flutter client
 ├── backend/
-│   ├── services/
-│   │   ├── api-gateway/
-│   │   ├── courses-service/
-│   │   │   ├── app/
-│   │   │   │   ├── main.py
-│   │   │   │   ├── config.py
-│   │   │   │   ├── dependencies.py
-│   │   │   │
-│   │   │   │   ├── routers/
-│   │   │   │   │   └── courses.py
-│   │   │   │
-│   │   │   │   ├── schemas/
-│   │   │   │   │   ├── course_schema.py
-│   │   │   │   │   └── lesson_schema.py
-│   │   │   │
-│   │   │   │   ├── services/
-│   │   │   │   │   └── course_service.py
-│   │   │   │
-│   │   │   │   ├── repositories/
-│   │   │   │   │   ├── course_repo.py              # interface/contract
-│   │   │   │   │   └── supabase_course_repo.py     # router → service → repository → supabase
-│   │   │   │
-│   │   │   │   ├── clients/
-│   │   │   │   │   └── supabase.py
-│   │   │   │
-│   │   │   │   └── utils/
-│   │   │   │       └── errors.py
-│   │   │   ├── tests/
-│   │   │   ├── Dockerfile
-│   │   │   └── requirements.txt
-│   │   ├── ai-service/
-│   │   └── sessions-service/
-│   │
-│   ├── shared/
-│   │   ├── auth/
-│   │   │   └── jwt.py
-│   │   ├── http/
-│   │   │   └── client.py             # shared http helpers
-│   │   └── logging.py
-│   │
-│   └── docker-compose.yml
-│
-├── contracts/
-│   └── openapi/
-│
-├── infra/
-│   ├── supabase/
-│   └── scripts/
-│
-└── README.md
+│   ├── docker-compose.yml
+│   └── services/
+│       ├── api-gateway/
+│       ├── ai-course-gen-service/
+│       ├── courses-service/
+│       ├── follow-service/
+│       ├── group-service/
+│       ├── progress-service/
+│       ├── pronunciation-feedback/
+│       └── user-profile-service/
+└── scripts/
 ```
 
+## Documentation
 
-
-## lib/src structure
-
-This folder holds the real app code (screens, widgets, and app setup).
-
-### How to place files
-
-- **`app/`**: global setup (root `MaterialApp`, routes, theme, constants)
-- **`features/`**: one folder per big app area (login, onboarding, courses, etc.)
-  - **`pages/`**: full screens
-  - **`widgets/`**: smaller UI pieces used by those screens
-  - **`controllers/`**: simple state/logic for that feature
-- **`common/`**: shared widgets/helpers/services used by multiple features
-
-We intentionally keep this simple for beginners.
-
-### Front end Structure
-```
-lib/
-  main.dart
-
-  src/
-    app/
-      app.dart           // MyApp: MaterialApp, theme, initial route
-      routes.dart        // route names & route table
-      theme.dart         // colors, typography, spacing
-      constants.dart     // strings, asset paths, etc.
-
-    features/
-      login/
-        pages/
-          login_page.dart
-          forgot_password_page.dart
-        widgets/
-          login_form.dart
-          social_login_buttons.dart
-        controllers/
-          login_controller.dart
-
-      onboarding/
-        pages/
-          onboarding_intro_page.dart
-          onboarding_goals_page.dart
-          onboarding_language_level_page.dart
-        widgets/
-          onboarding_step_indicator.dart
-        controllers/
-          onboarding_controller.dart
-
-      courses/
-        pages/
-          courses_list_page.dart
-          course_detail_page.dart
-          lesson_page.dart
-        widgets/
-          course_card.dart
-          lesson_progress_bar.dart
-        controllers/
-          courses_controller.dart
-
-      solo_practice/
-        pages/
-          solo_practice_home_page.dart
-          exercise_detail_page.dart
-          pronunciation_practice_page.dart
-        widgets/
-          exercise_card.dart
-          timer_widget.dart
-        controllers/
-          solo_practice_controller.dart
-
-      social/
-        pages/
-          feed_page.dart
-          post_detail_page.dart
-          notifications_page.dart
-        widgets/
-          post_card.dart
-          comment_input.dart
-        controllers/
-          social_controller.dart
-
-      public_profile/
-        pages/
-          public_profile_page.dart
-          edit_profile_page.dart
-        widgets/
-          avatar_with_badges.dart
-          stat_row.dart
-        controllers/
-          public_profile_controller.dart
-
-      group_session/
-        pages/
-          group_session_list_page.dart
-          group_session_detail_page.dart
-          group_session_live_page.dart
-        widgets/
-          participant_avatar.dart
-          live_waveform.dart
-        controllers/
-          group_session_controller.dart
-
-    common/
-      widgets/
-        primary_button.dart
-        primary_text_field.dart
-        app_scaffold.dart        // common Scaffold wrapper
-        app_bottom_nav_bar.dart  // if you have tab bar
-      utils/
-        validators.dart
-        formatters.dart
-      services/
-        api_client.dart
-        auth_service.dart
-        user_service.dart
-```
+| Doc | What it covers |
+|-----|---------------|
+| `README.md` (this file) | Product overview and repo orientation |
+| `backend/README.md` | Architecture, service descriptions, local dev runbook |
+| `apps/mobile_interface/README.md` | Flutter app structure, environment setup, contributor guide |

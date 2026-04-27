@@ -1,133 +1,110 @@
-# mobile_interface
+# Accend — Mobile Interface
 
-A new Flutter project.
+Flutter client for Accend (iOS, Android, and web targets). For a full product overview, see the root `README.md`.
 
-## Getting Started
+## Tech Stack
 
-This project is a starting point for a Flutter application.
+| Layer | Choice |
+|-------|--------|
+| Framework | Flutter / Dart `^3.10.7` |
+| Auth & session | `supabase_flutter` |
+| State management | `provider` |
+| HTTP | `http` |
+| Audio recording | `record` |
+| Audio playback | `audioplayers` |
+| Real-time voice sessions | `livekit_client` |
 
-A few resources to get you started if this is your first Flutter project:
+## Quick Start
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-
-## lib/src structure
-
-This folder holds the real app code (screens, widgets, and app setup).
-
-### How to place files
-
-- **`app/`**: global setup (root `MaterialApp`, routes, theme, constants)
-- **`features/`**: one folder per big app area (login, onboarding, courses, etc.)
-  - **`pages/`**: full screens
-  - **`widgets/`**: smaller UI pieces used by those screens
-  - **`controllers/`**: simple state/logic for that feature
-- **`common/`**: shared widgets/helpers/services used by multiple features
-
-We intentionally keep this simple for beginners.
-
-### Front end Structure
+```bash
+cd apps/mobile_interface
+flutter pub get
+flutter run
 ```
+
+For first-time setup, run backend first from `backend/`, then run this app so gateway calls succeed immediately.
+
+## Environment Configuration
+
+The app loads env files from `assets/`:
+
+- `assets/.env.mobile` — for mobile targets
+- `assets/.env.web` — for web
+
+Required variables:
+
+```
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+GATEWAY_BASE_URL=   # e.g. http://localhost:8080
+```
+
+`lib/main.dart` selects the correct env file by platform and initializes Supabase before `runApp`.
+
+## App Entry and Navigation
+
+- Entry point: `lib/main.dart`
+- App shell and setup: `lib/src/app/`
+- Named route table: `lib/src/app/routes.dart`
+
+Key route groups:
+
+| Group | Prefix |
+|-------|--------|
+| Onboarding | `/onboarding/...` |
+| Main shell tabs | `/home`, `/courses`, `/social`, `/profile` |
+| Solo practice | `/solo-practice` |
+| Group session | `/group_session/...` |
+
+## Source Layout
+
+```text
 lib/
-  main.dart
-
-  src/
-    app/
-      app.dart           // MyApp: MaterialApp, theme, initial route
-      routes.dart        // route names & route table
-      theme.dart         // colors, typography, spacing
-      constants.dart     // strings, asset paths, etc.
-
-    features/
-      login/
-        pages/
-          login_page.dart
-          forgot_password_page.dart
-        widgets/
-          login_form.dart
-          social_login_buttons.dart
-        controllers/
-          login_controller.dart
-
-      onboarding/
-        pages/
-          onboarding_intro_page.dart
-          onboarding_goals_page.dart
-          onboarding_language_level_page.dart
-        widgets/
-          onboarding_step_indicator.dart
-        controllers/
-          onboarding_controller.dart
-
-      courses/
-        pages/
-          courses_list_page.dart
-          course_detail_page.dart
-          lesson_page.dart
-        widgets/
-          course_card.dart
-          lesson_progress_bar.dart
-        controllers/
-          courses_controller.dart
-
-      solo_practice/
-        pages/
-          solo_practice_home_page.dart
-          exercise_detail_page.dart
-          pronunciation_practice_page.dart
-        widgets/
-          exercise_card.dart
-          timer_widget.dart
-        controllers/
-          solo_practice_controller.dart
-
-      social/
-        pages/
-          feed_page.dart
-          post_detail_page.dart
-          notifications_page.dart
-        widgets/
-          post_card.dart
-          comment_input.dart
-        controllers/
-          social_controller.dart
-
-      public_profile/
-        pages/
-          public_profile_page.dart
-          edit_profile_page.dart
-        widgets/
-          avatar_with_badges.dart
-          stat_row.dart
-        controllers/
-          public_profile_controller.dart
-
-      group_session/
-        pages/
-          group_session_list_page.dart
-          group_session_detail_page.dart
-          group_session_live_page.dart
-        widgets/
-          participant_avatar.dart
-          live_waveform.dart
-        controllers/
-          group_session_controller.dart
-
-    common/
-      widgets/
-        primary_button.dart
-        primary_text_field.dart
-        app_scaffold.dart        // common Scaffold wrapper
-        app_bottom_nav_bar.dart  // if you have tab bar
-      utils/
-        validators.dart
-        formatters.dart
-      services/
-        api_client.dart
-        auth_service.dart
-        user_service.dart
+├── main.dart
+└── src/
+    ├── app/              # Theme, routes, app shell
+    ├── common/           # Shared models, services, widgets, pages
+    └── features/
+        ├── courses/
+        ├── group_session/
+        ├── home/
+        ├── login/
+        ├── onboarding/
+        ├── progress/
+        ├── public_profile/
+        ├── social/
+        └── solo_practice/
 ```
+
+## Feature Organization Convention
+
+Each feature folder is structured by role:
+
+```text
+features/<name>/
+├── pages/        # Full screens registered in the route table
+├── widgets/      # UI pieces scoped to this feature
+├── controllers/  # State and business logic (Provider-based)
+├── models/       # Data types
+└── services/     # Feature-specific API or device interactions
+```
+
+Keep features self-contained. Shared code lives in `common/`, not leaked into other feature folders.
+
+## Working With the Backend
+
+The app communicates only with the API Gateway — never with internal microservices directly. The gateway handles auth verification and service orchestration.
+
+Local gateway default: `http://localhost:8080`
+
+Common gateway interactions:
+
+- Profile bootstrap and onboarding patches
+- Home and profile preload endpoints
+- Course listing and lesson completion
+- AI course generation (custom prompt, onboarding seed, weak-phoneme)
+- Pronunciation assessment and AI feedback
+- Group lobby, turn-state, scoring, and vote endpoints
+- Follow, block, and reputation endpoints
+
+For backend setup and service descriptions, see `backend/README.md`.
