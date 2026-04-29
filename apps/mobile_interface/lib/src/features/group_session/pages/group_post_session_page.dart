@@ -21,6 +21,7 @@ class GroupPostSessionPage extends StatefulWidget {
 
 class _GroupPostSessionPageState extends State<GroupPostSessionPage> {
   late final List<PrivateLobby> _participants;
+  String? _currentUserId;
   // Tracks vote state per participant userId for this session.
   final Map<String, _VoteState> _votes = {};
 
@@ -34,10 +35,8 @@ class _GroupPostSessionPageState extends State<GroupPostSessionPage> {
     super.didChangeDependencies();
     if (!_isInitialized) {
       _isInitialized = true;
-      final currentUserId = context.read<AuthService>().currentUser?.id;
-      _participants = widget.participants
-          .where((p) => p.userId != currentUserId)
-          .toList();
+      _currentUserId = context.read<AuthService>().currentUser?.id;
+      _participants = widget.participants.toList();
       context.read<SocialController>().load();
       final ids = _participants.map((p) => p.userId).toList();
       if (ids.isNotEmpty) {
@@ -121,6 +120,17 @@ class _GroupPostSessionPageState extends State<GroupPostSessionPage> {
     }
   }
 
+  static Color _playerColor(int idx) {
+    const palette = [
+      Color(0xFFC06BFF),
+      Color(0xFF67A9FF),
+      Color(0xFF74EC8A),
+      Color(0xFFE8F087),
+      Color(0xFFF57E62),
+    ];
+    return palette[idx % palette.length];
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
@@ -188,6 +198,7 @@ class _GroupPostSessionPageState extends State<GroupPostSessionPage> {
                         separatorBuilder: (_, __) => const SizedBox(height: 10),
                         itemBuilder: (context, index) {
                           final p = _participants[index];
+                          final isMe = p.userId == _currentUserId;
                           final isFollowing = social.following
                               .any((u) => u.id == p.userId);
                           final isBlocked = social.blockedIds.contains(p.userId);
@@ -197,6 +208,8 @@ class _GroupPostSessionPageState extends State<GroupPostSessionPage> {
                             username: p.username,
                             profileImageUrl: knownUser?.profileImageUrl,
                             level: knownUser?.level,
+                            isMe: isMe,
+                            avatarColor: _playerColor(index),
                             isFollowing: isFollowing,
                             isBlocked: isBlocked,
                             voteState: voteState,
@@ -267,13 +280,17 @@ class _ParticipantCard extends StatelessWidget {
     required this.onAvoidTap,
     required this.onUpvoteTap,
     required this.onDownvoteTap,
+    required this.avatarColor,
     this.profileImageUrl,
     this.level,
+    this.isMe = false,
   });
 
   final String username;
   final String? profileImageUrl;
   final int? level;
+  final bool isMe;
+  final Color avatarColor;
   final bool isFollowing;
   final bool isBlocked;
   final _VoteState voteState;
@@ -296,7 +313,7 @@ class _ParticipantCard extends StatelessWidget {
           // Avatar with online dot
           Stack(
             children: [
-              _Avatar(username: username, imageUrl: profileImageUrl),
+              _Avatar(username: username, imageUrl: profileImageUrl, borderColor: avatarColor),
               Positioned(
                 bottom: 0,
                 right: 0,
@@ -319,7 +336,7 @@ class _ParticipantCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  username,
+                  isMe ? '$username (you)' : username,
                   style: GoogleFonts.montserrat(
                     color: AppColors.textPrimary,
                     fontSize: 14,
@@ -342,75 +359,77 @@ class _ParticipantCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          // Vote buttons grouped
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.inputFill,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _VoteButton(
-                  icon: Icons.thumb_up_rounded,
-                  active: voteState == _VoteState.upvoted,
-                  activeColor: const Color(0xFF22C55E),
-                  onTap: onUpvoteTap,
-                ),
-                _VoteButton(
-                  icon: Icons.thumb_down_rounded,
-                  active: voteState == _VoteState.downvoted,
-                  activeColor: AppColors.failure,
-                  onTap: onDownvoteTap,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          // Follow button
-          SizedBox(
-            height: 34,
-            child: ElevatedButton(
-              onPressed: onFollowTap,
-              style: ElevatedButton.styleFrom(
-                elevation: 0,
-                backgroundColor:
-                    isFollowing ? Colors.transparent : AppColors.accent,
-                foregroundColor:
-                    isFollowing ? AppColors.accent : AppColors.primaryBg,
-                side: isFollowing
-                    ? BorderSide(color: AppColors.accent.withValues(alpha: 0.4), width: 1)
-                    : BorderSide.none,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                minimumSize: const Size(70, 34),
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                textStyle: GoogleFonts.montserrat(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                ),
+          if (!isMe) ...[
+            const SizedBox(width: 8),
+            // Vote buttons grouped
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.inputFill,
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: Text(isFollowing ? 'Following' : 'Follow'),
-            ),
-          ),
-          const SizedBox(width: 4),
-          // Block/Avoid icon button
-          GestureDetector(
-            onTap: onAvoidTap,
-            child: Padding(
-              padding: const EdgeInsets.all(6),
-              child: Icon(
-                Icons.block_rounded,
-                size: 20,
-                color: isBlocked
-                    ? AppColors.failure
-                    : AppColors.textSecondary.withValues(alpha: 0.4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _VoteButton(
+                    icon: Icons.thumb_up_rounded,
+                    active: voteState == _VoteState.upvoted,
+                    activeColor: const Color(0xFF22C55E),
+                    onTap: onUpvoteTap,
+                  ),
+                  _VoteButton(
+                    icon: Icons.thumb_down_rounded,
+                    active: voteState == _VoteState.downvoted,
+                    activeColor: AppColors.failure,
+                    onTap: onDownvoteTap,
+                  ),
+                ],
               ),
             ),
-          ),
+            const SizedBox(width: 8),
+            // Follow button
+            SizedBox(
+              height: 34,
+              child: ElevatedButton(
+                onPressed: onFollowTap,
+                style: ElevatedButton.styleFrom(
+                  elevation: 0,
+                  backgroundColor:
+                      isFollowing ? Colors.transparent : AppColors.accent,
+                  foregroundColor:
+                      isFollowing ? AppColors.accent : AppColors.primaryBg,
+                  side: isFollowing
+                      ? BorderSide(color: AppColors.accent.withValues(alpha: 0.4), width: 1)
+                      : BorderSide.none,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  minimumSize: const Size(70, 34),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  textStyle: GoogleFonts.montserrat(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                child: Text(isFollowing ? 'Following' : 'Follow'),
+              ),
+            ),
+            const SizedBox(width: 4),
+            // Block/Avoid icon button
+            GestureDetector(
+              onTap: onAvoidTap,
+              child: Padding(
+                padding: const EdgeInsets.all(6),
+                child: Icon(
+                  Icons.block_rounded,
+                  size: 20,
+                  color: isBlocked
+                      ? AppColors.failure
+                      : AppColors.textSecondary.withValues(alpha: 0.4),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -447,10 +466,11 @@ class _VoteButton extends StatelessWidget {
 }
 
 class _Avatar extends StatelessWidget {
-  const _Avatar({required this.username, this.imageUrl});
+  const _Avatar({required this.username, this.imageUrl, this.borderColor});
 
   final String username;
   final String? imageUrl;
+  final Color? borderColor;
 
   @override
   Widget build(BuildContext context) {
@@ -463,7 +483,14 @@ class _Avatar extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: AppColors.inputFill,
-        border: Border.all(color: AppColors.accent.withValues(alpha: 0.5), width: 1.5),
+        border: Border.all(color: borderColor ?? AppColors.accent.withValues(alpha: 0.5), width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: (borderColor ?? AppColors.accent).withValues(alpha: 0.4),
+            blurRadius: 12,
+            spreadRadius: 0,
+          ),
+        ],
         image: imageUrl != null && imageUrl!.isNotEmpty
             ? DecorationImage(
                 image: NetworkImage(imageUrl!),
@@ -476,7 +503,7 @@ class _Avatar extends StatelessWidget {
           ? Text(
               initial,
               style: GoogleFonts.montserrat(
-                color: AppColors.accent,
+                color: borderColor ?? AppColors.accent,
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
               ),
