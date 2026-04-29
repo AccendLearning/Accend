@@ -32,6 +32,7 @@ class _GroupSessionActiveLobbyPageState extends State<GroupSessionActiveLobbyPag
   Timer? _turnPoller;
   Timer? _turnMicTimer;
   bool _turnMicActive = false;
+  bool _groupCallInitialized = false;
   String _lobbyKind = 'private';
   final TextEditingController _scoreController = TextEditingController();
   _LobbyTurnState? _turnState;
@@ -108,8 +109,9 @@ class _GroupSessionActiveLobbyPageState extends State<GroupSessionActiveLobbyPag
         _room = room;
         _micEnabled = false;
         _turnMicActive = false;
+        _groupCallInitialized = (_turnState?.roundComplete ?? false);
         if (micPub == null) {
-          _voiceError = 'Connected to voice. Mic will activate only during your turn.';
+          _voiceError = 'Connected to voice. Tap mic to unmute when ready.';
         }
         _voiceConnecting = false;
       });
@@ -277,37 +279,56 @@ class _GroupSessionActiveLobbyPageState extends State<GroupSessionActiveLobbyPag
   }
 
   Future<void> _toggleMic() async {
-    if (_turnMicActive) {
-      await _stopTurnMicWindow();
-      return;
-    }
-    if (!_isMyTurn()) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Only the active speaker can use the microphone.')),
-      );
-      return;
-    }
     final room = _room;
     if (room == null) return;
+    if (_turnState?.roundComplete != true) {
+      if (_turnMicActive) {
+        await _stopTurnMicWindow();
+        return;
+      }
+      if (!_isMyTurn()) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Only the active speaker can use the microphone.')),
+        );
+        return;
+      }
+      try {
+        final micPub = await room.localParticipant?.setMicrophoneEnabled(true);
+        if (!mounted) return;
+        setState(() {
+          _micEnabled = micPub != null;
+          _turnMicActive = _micEnabled;
+          _voiceError = (micPub == null)
+              ? 'Microphone publish failed. Check browser permissions.'
+              : null;
+        });
+        if (_micEnabled) {
+          _turnMicTimer?.cancel();
+          _turnMicProgress.forward(from: 0);
+          _turnMicPulse.repeat(reverse: true);
+          _turnMicTimer = Timer(const Duration(seconds: 10), () {
+            unawaited(_stopTurnMicWindow());
+          });
+        }
+      } catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _voiceError = 'Failed to toggle mic: $e';
+        });
+      }
+      return;
+    }
     try {
-      final micPub = await room.localParticipant?.setMicrophoneEnabled(true);
+      final targetEnabled = !_micEnabled;
+      final micPub = await room.localParticipant?.setMicrophoneEnabled(targetEnabled);
       if (!mounted) return;
       setState(() {
-        _micEnabled = micPub != null;
-        _turnMicActive = _micEnabled;
-        _voiceError = (micPub == null)
+        _micEnabled = targetEnabled && micPub != null;
+        _voiceError = (targetEnabled && micPub == null)
             ? 'Microphone publish failed. Check browser permissions.'
             : null;
       });
-      if (_micEnabled) {
-        _turnMicTimer?.cancel();
-        _turnMicProgress.forward(from: 0);
-        _turnMicPulse.repeat(reverse: true);
-        _turnMicTimer = Timer(const Duration(seconds: 10), () {
-          unawaited(_stopTurnMicWindow());
-        });
-      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -351,9 +372,42 @@ class _GroupSessionActiveLobbyPageState extends State<GroupSessionActiveLobbyPag
   }
 
   Future<void> _handleTurnMicPermissions() async {
-    if (_isMyTurn()) return;
+    final room = _room;
+    final roundComplete = _turnState?.roundComplete ?? false;
+    if (roundComplete) {
+      _turnMicTimer?.cancel();
+      _turnMicTimer = null;
+      _turnMicProgress.stop();
+      _turnMicProgress.reset();
+      _turnMicPulse.animateTo(
+        0,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+      if (_turnMicActive && mounted) {
+        setState(() => _turnMicActive = false);
+      }
+      if (room != null && !_groupCallInitialized) {
+        try {
+          await room.localParticipant?.setMicrophoneEnabled(false);
+        } catch (_) {
+          // Best-effort mute.
+        }
+        if (!mounted) return;
+        setState(() {
+          _micEnabled = false;
+          _groupCallInitialized = true;
+        });
+      }
+      return;
+    }
+
+    _groupCallInitialized = false;
+
     if (_turnMicActive || _micEnabled) {
-      await _stopTurnMicWindow();
+      if (!_isMyTurn()) {
+        await _stopTurnMicWindow();
+      }
     }
   }
 
@@ -423,7 +477,6 @@ class _GroupSessionActiveLobbyPageState extends State<GroupSessionActiveLobbyPag
         myUserId != null && myUserId.isNotEmpty && nextRoundVotes.contains(myUserId);
     final participantCount = state?.participants.length ?? players.length;
     final isMyTurn = _isMyTurn();
-
     return Scaffold(
       backgroundColor: AppColors.primaryBg,
       body: SafeArea(
@@ -534,6 +587,7 @@ class _GroupSessionActiveLobbyPageState extends State<GroupSessionActiveLobbyPag
                     connecting: _voiceConnecting,
                     connected: _room != null,
                     micEnabled: _micEnabled,
+                    allTurnsScored: allTurnsScored,
                     isMyTurn: isMyTurn,
                     activeWindow: _turnMicActive,
                     pulse: _turnMicPulse,
@@ -550,9 +604,15 @@ class _GroupSessionActiveLobbyPageState extends State<GroupSessionActiveLobbyPag
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    isMyTurn
-                        ? (_turnMicActive ? 'You are live now (10s max).' : 'Your turn: tap mic to speak (10s).')
-                        : 'Only ${currentPlayer?.displayName ?? 'current speaker'} can use the mic',
+                    allTurnsScored
+                        ? (_micEnabled
+                            ? 'Group call live: tap mic to mute yourself.'
+                            : 'You are muted: tap mic to unmute.')
+                        : (isMyTurn
+                            ? (_turnMicActive
+                                ? 'You are live now (10s max).'
+                                : 'Your turn: tap mic to speak (10s).')
+                            : 'Only ${currentPlayer?.displayName ?? 'current speaker'} can use the mic'),
                     style: t.textTheme.bodySmall?.copyWith(
                       color: AppColors.textSecondary,
                       fontWeight: FontWeight.w600,
@@ -885,6 +945,7 @@ class _TurnLimitedMicButton extends StatelessWidget {
     required this.connecting,
     required this.connected,
     required this.micEnabled,
+    required this.allTurnsScored,
     required this.isMyTurn,
     required this.activeWindow,
     required this.pulse,
@@ -895,6 +956,7 @@ class _TurnLimitedMicButton extends StatelessWidget {
   final bool connecting;
   final bool connected;
   final bool micEnabled;
+  final bool allTurnsScored;
   final bool isMyTurn;
   final bool activeWindow;
   final AnimationController pulse;
@@ -903,14 +965,20 @@ class _TurnLimitedMicButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isRecordingWindow = activeWindow && connected;
-    final Color glowColor = isRecordingWindow ? AppColors.failure : AppColors.accent;
+    final bool isLive = connected && micEnabled;
+    final bool isRecordingWindow = activeWindow && connected && !allTurnsScored;
+    final Color liveGreen = const Color(0xFF22C55E);
+    final Color glowColor = allTurnsScored
+        ? (isLive ? liveGreen : AppColors.accent)
+        : (isRecordingWindow ? AppColors.failure : AppColors.accent);
 
     return AnimatedBuilder(
       animation: pulse,
       builder: (context, _) {
         final glowScale = 1.0 + pulse.value * 0.18;
-        final glowOpacity = isRecordingWindow ? (0.2 + pulse.value * 0.16) : 0.16;
+        final glowOpacity = isRecordingWindow
+            ? (0.2 + pulse.value * 0.16)
+            : (allTurnsScored ? (isLive ? 0.28 : 0.16) : 0.16);
 
         return SizedBox(
           width: 128,
@@ -942,8 +1010,12 @@ class _TurnLimitedMicButton extends StatelessWidget {
                     boxShadow: [
                       BoxShadow(
                         color: glowColor.withOpacity(glowOpacity),
-                        blurRadius: 32,
-                        spreadRadius: 4,
+                        blurRadius: allTurnsScored
+                            ? (isLive ? 36 : 28)
+                            : 32,
+                        spreadRadius: allTurnsScored
+                            ? (isLive ? 6 : 4)
+                            : 4,
                       ),
                     ],
                   ),
@@ -955,13 +1027,19 @@ class _TurnLimitedMicButton extends StatelessWidget {
                 height: 100,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isRecordingWindow
-                      ? AppColors.failure.withOpacity(0.12)
-                      : AppColors.surface,
+                  color: allTurnsScored
+                      ? (isLive ? liveGreen.withOpacity(0.14) : AppColors.surface)
+                      : (isRecordingWindow
+                          ? AppColors.failure.withOpacity(0.12)
+                          : AppColors.surface),
                   border: Border.all(
-                    color: isRecordingWindow
-                        ? AppColors.failure.withOpacity(0.65)
-                        : AppColors.accent.withOpacity(0.5),
+                    color: allTurnsScored
+                        ? (isLive
+                            ? liveGreen.withOpacity(0.72)
+                            : AppColors.accent.withOpacity(0.5))
+                        : (isRecordingWindow
+                            ? AppColors.failure.withOpacity(0.65)
+                            : AppColors.accent.withOpacity(0.5)),
                     width: 1.5,
                   ),
                 ),
@@ -969,7 +1047,11 @@ class _TurnLimitedMicButton extends StatelessWidget {
                   iconSize: 50,
                   padding: EdgeInsets.zero,
                   onPressed: connecting ? null : onPressed,
-                  tooltip: isMyTurn ? 'Start speaking window' : 'Waiting for your turn',
+                  tooltip: connected
+                      ? (allTurnsScored
+                          ? (isLive ? 'Mute microphone' : 'Unmute microphone')
+                          : (isMyTurn ? 'Start speaking window' : 'Waiting for your turn'))
+                      : 'Connect voice',
                   icon: connecting
                       ? const SizedBox(
                           width: 26,
@@ -977,12 +1059,16 @@ class _TurnLimitedMicButton extends StatelessWidget {
                           child: CircularProgressIndicator(strokeWidth: 2.5),
                         )
                       : Icon(
-                          isRecordingWindow ? Icons.stop_rounded : Icons.mic_rounded,
-                          color: isRecordingWindow
-                              ? AppColors.failure
-                              : ((!isMyTurn && !isRecordingWindow)
-                                  ? AppColors.textSecondary
-                                  : AppColors.accent),
+                          allTurnsScored
+                              ? (isLive ? Icons.mic_rounded : Icons.mic_off_rounded)
+                              : (isRecordingWindow ? Icons.stop_rounded : Icons.mic_rounded),
+                          color: allTurnsScored
+                              ? (isLive ? liveGreen : AppColors.textSecondary)
+                              : (isRecordingWindow
+                                  ? AppColors.failure
+                                  : ((!isMyTurn && !isRecordingWindow)
+                                      ? AppColors.textSecondary
+                                      : AppColors.accent)),
                         ),
                 ),
               ),
