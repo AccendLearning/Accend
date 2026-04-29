@@ -201,6 +201,7 @@ class _GroupSessionSelectPageState extends State<GroupSessionPrivateJoinPage> {
                                         final knownUser = social.findUser(p.userId);
                                         final imageUrl = knownUser?.profileImageUrl;
                                         final rep = knownUser?.reputation ?? 0;
+                                        final level = knownUser?.level;
                                         final repColor = rep > 0
                                             ? const Color(0xFF22C55E)
                                             : rep < 0
@@ -243,10 +244,17 @@ class _GroupSessionSelectPageState extends State<GroupSessionPrivateJoinPage> {
                                               ),
                                               const SizedBox(width: 10),
                                               Expanded(
-                                                child: Text(
-                                                  label,
-                                                  style: t.textTheme.bodyLarge,
-                                                  overflow: TextOverflow.ellipsis,
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Text(
+                                                      label,
+                                                      style: t.textTheme.bodyLarge,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                    if (level != null) ...[const SizedBox(height: 2), Text('LVL $level', style: GoogleFonts.montserrat(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 1.0))],
+                                                  ],
                                                 ),
                                               ),
                                               if (!isMe) ...[
