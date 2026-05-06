@@ -401,9 +401,10 @@ class _GroupSessionActiveLobbyPageState extends State<GroupSessionActiveLobbyPag
     final ctrl = context.read<GroupSessionController>();
     final players = ctrl.privateLobby;
     final myUserId = ctrl.myUserId;
+    final roundIndex = state?.roundNumber ?? 0;
     final currentItem = ctrl.sessionItems.isEmpty
         ? null
-        : ctrl.sessionItems[_roundIndex % ctrl.sessionItems.length];
+        : ctrl.sessionItems[roundIndex % ctrl.sessionItems.length];
     if (_submittingAutoScore ||
         state == null ||
         state.roundComplete ||
@@ -443,7 +444,7 @@ class _GroupSessionActiveLobbyPageState extends State<GroupSessionActiveLobbyPag
       setState(() {
         _turnState = next;
         _turnFeedback = feedback;
-        if (_capturedRoundIndices.add(_roundIndex)) {
+        if (_capturedRoundIndices.add(roundIndex)) {
           _sessionFeedbacks.add(feedback);
           _sessionItems.add(currentItem);
         }
