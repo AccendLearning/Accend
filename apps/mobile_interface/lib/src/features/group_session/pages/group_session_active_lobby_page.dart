@@ -746,24 +746,55 @@ class _GroupSessionActiveLobbyPageState extends State<GroupSessionActiveLobbyPag
                     ),
                   ),
                   const SizedBox(height: 10),
-                  _TurnLimitedMicButton(
-                    connecting: _voiceConnecting,
-                    connected: _room != null,
-                    micEnabled: _micEnabled,
-                    allTurnsScored: allTurnsScored,
-                    isMyTurn: isMyTurn,
-                    activeWindow: _turnMicActive,
-                    pulse: _turnMicPulse,
-                    progress: _turnMicProgress,
-                    onPressed: _voiceConnecting
-                        ? null
-                        : () {
-                            if (_room == null) {
-                              _connectVoice();
-                            } else {
-                              _toggleMic();
-                            }
-                          },
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      _TurnLimitedMicButton(
+                        connecting: _voiceConnecting,
+                        connected: _room != null,
+                        micEnabled: _micEnabled,
+                        allTurnsScored: allTurnsScored,
+                        isMyTurn: isMyTurn,
+                        activeWindow: _turnMicActive,
+                        pulse: _turnMicPulse,
+                        progress: _turnMicProgress,
+                        onPressed: _voiceConnecting
+                            ? null
+                            : () {
+                                if (_room == null) {
+                                  _connectVoice();
+                                } else {
+                                  _toggleMic();
+                                }
+                              },
+                      ),
+                      if (allTurnsScored) ...[
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          width: 170,
+                          child: ElevatedButton(
+                            onPressed: players.isEmpty
+                                ? null
+                                : (haveIVotedNextRound ? null : () => _voteNextRound(players)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.surface,
+                              foregroundColor: AppColors.textPrimary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(AppRadii.md),
+                                side: const BorderSide(color: AppColors.border),
+                              ),
+                            ),
+                            child: Text(
+                              haveIVotedNextRound
+                                  ? 'Voted ($nextRoundVoteCount/$participantCount)'
+                                  : 'Vote next round ($nextRoundVoteCount/$participantCount)',
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   const SizedBox(height: 6),
                   Text(
@@ -819,50 +850,26 @@ class _GroupSessionActiveLobbyPageState extends State<GroupSessionActiveLobbyPag
                       textAlign: TextAlign.center,
                     )
                   ],
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: players.isEmpty
-                          ? null
-                          : (allTurnsScored
-                              ? (haveIVotedNextRound ? null : () => _voteNextRound(players))
-                              : null),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.surface,
-                        foregroundColor: AppColors.textPrimary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppRadii.md),
-                          side: const BorderSide(color: AppColors.border),
-                        ),
-                      ),
-                      child: Text(
-                        allTurnsScored
-                            ? (haveIVotedNextRound
-                                ? 'Voted ($nextRoundVoteCount/$participantCount)'
-                                : 'Vote next round ($nextRoundVoteCount/$participantCount)')
-                            : (_submittingAutoScore ? 'Submitting score...' : 'Score auto-submits after turn'),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: ctrl.isLoading || players.isEmpty ? null : () => _leaveLobby(context),
-                      icon: const Icon(Icons.logout_rounded),
-                      label: const Text('Leave lobby'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF59E0B),
-                        foregroundColor: const Color(0xFF101828),
-                        disabledBackgroundColor: const Color(0xFFF59E0B).withOpacity(0.45),
-                        disabledForegroundColor: const Color(0xFF101828).withOpacity(0.6),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppRadii.md),
+                  if (allTurnsScored) ...[
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: ctrl.isLoading || players.isEmpty ? null : () => _leaveLobby(context),
+                        icon: const Icon(Icons.logout_rounded),
+                        label: const Text('Leave lobby'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFF59E0B),
+                          foregroundColor: const Color(0xFF101828),
+                          disabledBackgroundColor: const Color(0xFFF59E0B).withOpacity(0.45),
+                          disabledForegroundColor: const Color(0xFF101828).withOpacity(0.6),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppRadii.md),
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                  ],
                       ],
                     ),
                   ),
