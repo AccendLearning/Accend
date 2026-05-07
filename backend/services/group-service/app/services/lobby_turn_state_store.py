@@ -28,8 +28,9 @@ class LobbyTurnStateStore:
     ) -> LobbyTurnStateOut:
         state = self._repo.get_or_create_state(lobby_kind=lobby_kind, lobby_id=lobby_id)
         ordered = self._ordered_members(members)
-        self._prune_scores(state, ordered)
-        state = self._repo.save_state(lobby_kind=lobby_kind, lobby_id=lobby_id, state=state)
+        # Avoid writing on every read; write only when pruning actually changed state.
+        if self._prune_scores(state, ordered):
+            state = self._repo.save_state(lobby_kind=lobby_kind, lobby_id=lobby_id, state=state)
         return self._to_output(
             lobby_kind=lobby_kind,
             lobby_id=lobby_id,
@@ -46,29 +47,43 @@ class LobbyTurnStateStore:
         actor_user_id: str,
         score: float,
     ) -> LobbyTurnStateOut:
-        state = self._repo.get_or_create_state(lobby_kind=lobby_kind, lobby_id=lobby_id)
         ordered = self._ordered_members(members)
-        self._prune_scores(state, ordered)
-        current_idx = self._first_unscored_index(ordered, state)
-        if current_idx is None:
-            raise RuntimeError("Round already complete")
+        for _ in range(3):
+            state = self._repo.get_or_create_state(lobby_kind=lobby_kind, lobby_id=lobby_id)
+            self._prune_scores(state, ordered)
 
-        current_user_id = ordered[current_idx].user_id
-        if current_user_id != actor_user_id:
-            raise RuntimeError("Not your turn")
+            # Idempotency: if this user's score already exists, treat as success.
+            if actor_user_id in state.scores_by_user:
+                return self._to_output(
+                    lobby_kind=lobby_kind,
+                    lobby_id=lobby_id,
+                    ordered_members=ordered,
+                    state=state,
+                )
 
-        state.scores_by_user[actor_user_id] = float(score)
-        # Any score change invalidates prior "next round" voting.
-        state.next_round_votes_by_user.clear()
-        state.event_seq += 1
-        state.latest_scored_user_id = actor_user_id
-        state = self._repo.save_state(lobby_kind=lobby_kind, lobby_id=lobby_id, state=state)
-        return self._to_output(
-            lobby_kind=lobby_kind,
-            lobby_id=lobby_id,
-            ordered_members=ordered,
-            state=state,
-        )
+            current_idx = self._first_unscored_index(ordered, state)
+            if current_idx is None:
+                raise RuntimeError("Round already complete")
+
+            current_user_id = ordered[current_idx].user_id
+            if current_user_id != actor_user_id:
+                raise RuntimeError("Not your turn")
+
+            state.scores_by_user[actor_user_id] = float(score)
+            # Any score change invalidates prior "next round" voting.
+            state.next_round_votes_by_user.clear()
+            state.event_seq += 1
+            state.latest_scored_user_id = actor_user_id
+            saved = self._repo.save_state(lobby_kind=lobby_kind, lobby_id=lobby_id, state=state)
+            if actor_user_id in saved.scores_by_user:
+                return self._to_output(
+                    lobby_kind=lobby_kind,
+                    lobby_id=lobby_id,
+                    ordered_members=ordered,
+                    state=saved,
+                )
+
+        raise RuntimeError("Failed to persist turn score; please retry")
 
     def vote_next_round(
         self,
@@ -78,36 +93,43 @@ class LobbyTurnStateStore:
         members: list[PrivateLobbyMemberOut],
         actor_user_id: str,
     ) -> LobbyTurnStateOut:
-        state = self._repo.get_or_create_state(lobby_kind=lobby_kind, lobby_id=lobby_id)
         ordered = self._ordered_members(members)
-        self._prune_scores(state, ordered)
-
-        # Only allow voting once the round is complete.
-        if self._first_unscored_index(ordered, state) is not None:
-            raise RuntimeError("Round not complete")
-
         allowed = {m.user_id for m in ordered}
         if actor_user_id not in allowed:
             raise RuntimeError("Not a lobby member")
 
-        state.next_round_votes_by_user.add(actor_user_id)
-        state.event_seq += 1
+        for _ in range(3):
+            state = self._repo.get_or_create_state(lobby_kind=lobby_kind, lobby_id=lobby_id)
+            self._prune_scores(state, ordered)
 
-        # Unanimous vote resets the round.
-        if allowed and state.next_round_votes_by_user.issuperset(allowed):
-            state.scores_by_user.clear()
-            state.next_round_votes_by_user.clear()
-            state.latest_scored_user_id = None
-            state.round_number += 1
+            # Only allow voting once the round is complete.
+            if self._first_unscored_index(ordered, state) is not None:
+                raise RuntimeError("Round not complete")
+
+            prior_round = state.round_number
+            state.next_round_votes_by_user.add(actor_user_id)
             state.event_seq += 1
 
-        state = self._repo.save_state(lobby_kind=lobby_kind, lobby_id=lobby_id, state=state)
-        return self._to_output(
-            lobby_kind=lobby_kind,
-            lobby_id=lobby_id,
-            ordered_members=ordered,
-            state=state,
-        )
+            # Unanimous vote resets the round.
+            if allowed and state.next_round_votes_by_user.issuperset(allowed):
+                state.scores_by_user.clear()
+                state.next_round_votes_by_user.clear()
+                state.latest_scored_user_id = None
+                state.round_number += 1
+                state.event_seq += 1
+
+            saved = self._repo.save_state(lobby_kind=lobby_kind, lobby_id=lobby_id, state=state)
+            voted_persisted = actor_user_id in saved.next_round_votes_by_user
+            round_advanced = saved.round_number > prior_round
+            if voted_persisted or round_advanced:
+                return self._to_output(
+                    lobby_kind=lobby_kind,
+                    lobby_id=lobby_id,
+                    ordered_members=ordered,
+                    state=saved,
+                )
+
+        raise RuntimeError("Failed to persist next-round vote; please retry")
 
     def clear_user(self, *, user_id: str) -> None:
         # State is pruned against live members on every read/write.
@@ -119,16 +141,23 @@ class LobbyTurnStateStore:
         return sorted(members, key=lambda m: m.joined_at)
 
     @staticmethod
-    def _prune_scores(state: LobbyTurnStateRecord, ordered_members: list[PrivateLobbyMemberOut]) -> None:
+    def _prune_scores(
+        state: LobbyTurnStateRecord, ordered_members: list[PrivateLobbyMemberOut]
+    ) -> bool:
+        changed = False
         allowed = {m.user_id for m in ordered_members}
         for user_id in list(state.scores_by_user.keys()):
             if user_id not in allowed:
                 del state.scores_by_user[user_id]
+                changed = True
         for user_id in list(state.next_round_votes_by_user):
             if user_id not in allowed:
                 state.next_round_votes_by_user.discard(user_id)
+                changed = True
         if state.latest_scored_user_id not in allowed:
             state.latest_scored_user_id = None
+            changed = True
+        return changed
 
     @staticmethod
     def _first_unscored_index(

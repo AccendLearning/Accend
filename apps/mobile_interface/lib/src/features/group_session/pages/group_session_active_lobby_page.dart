@@ -730,8 +730,10 @@ class _GroupSessionActiveLobbyPageState extends State<GroupSessionActiveLobbyPag
                     height: mountainHeight,
                     child: _TurnMountainView(
                       players: players,
+                      allParticipants: state?.participants ?? queue,
                       orderedPlayers: queue,
                       currentPlayerId: currentPlayer?.userId,
+                      latestScoredUserId: state?.latestScoredUserId,
                       scoresByPlayer: scoresByPlayer,
                       newlyPlantedFlags: _newlyPlantedFlags,
                       profileImages: {
@@ -844,13 +846,20 @@ class _GroupSessionActiveLobbyPageState extends State<GroupSessionActiveLobbyPag
                     ),
                   ),
                   const SizedBox(height: 8),
-                  TextButton(
-                    onPressed: ctrl.isLoading || players.isEmpty ? null : () => _leaveLobby(context),
-                    child: Text(
-                      'Leave lobby',
-                      style: t.textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                        decoration: TextDecoration.underline,
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: ctrl.isLoading || players.isEmpty ? null : () => _leaveLobby(context),
+                      icon: const Icon(Icons.logout_rounded),
+                      label: const Text('Leave lobby'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF59E0B),
+                        foregroundColor: const Color(0xFF101828),
+                        disabledBackgroundColor: const Color(0xFFF59E0B).withOpacity(0.45),
+                        disabledForegroundColor: const Color(0xFF101828).withOpacity(0.6),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadii.md),
+                        ),
                       ),
                     ),
                   ),
@@ -935,16 +944,20 @@ class _LetterAccuracyPrompt extends StatelessWidget {
 class _TurnMountainView extends StatelessWidget {
   const _TurnMountainView({
     required this.players,
+    required this.allParticipants,
     required this.orderedPlayers,
     required this.currentPlayerId,
+    required this.latestScoredUserId,
     required this.scoresByPlayer,
     required this.newlyPlantedFlags,
     required this.profileImages,
   });
 
   final List<PrivateLobby> players;
+  final List<_TurnParticipant> allParticipants;
   final List<_TurnParticipant> orderedPlayers;
   final String? currentPlayerId;
+  final String? latestScoredUserId;
   final Map<String, double> scoresByPlayer;
   final Set<String> newlyPlantedFlags;
   final Map<String, String?> profileImages;
@@ -952,6 +965,11 @@ class _TurnMountainView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
+    final latestScoreMeters = () {
+      final userId = latestScoredUserId;
+      if (userId == null || userId.isEmpty) return 0.0;
+      return scoresByPlayer[userId] ?? 0.0;
+    }();
     return LayoutBuilder(
       builder: (context, constraints) {
         final height = constraints.maxHeight;
@@ -965,7 +983,7 @@ class _TurnMountainView extends StatelessWidget {
               left: 30,
               top: 8,
               child: Text(
-                '0.00 m',
+                '${latestScoreMeters.toStringAsFixed(2)} m',
                 style: t.textTheme.bodyMedium?.copyWith(
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.w500,
@@ -983,8 +1001,8 @@ class _TurnMountainView extends StatelessWidget {
             ),
             if (players.isNotEmpty)
               ...orderedPlayers.asMap().entries.map((entry) {
-                final i = entry.key;
                 final p = entry.value;
+                final i = entry.key;
                 final y = 52 + i * 40.0;
                 final isCurrent = p.userId == currentPlayerId;
                 return Positioned(
@@ -993,7 +1011,7 @@ class _TurnMountainView extends StatelessWidget {
                   child: _PlayerOrderItem(
                     label: p.displayName,
                     isCurrent: isCurrent,
-                    color: _playerColor(i),
+                    color: _colorForUser(p.userId),
                     imageUrl: profileImages[p.userId],
                   ),
                 );
@@ -1039,7 +1057,7 @@ class _TurnMountainView extends StatelessWidget {
   }
 
   Color _colorForUser(String userId) {
-    final idx = orderedPlayers.indexWhere((p) => p.userId == userId);
+    final idx = allParticipants.indexWhere((p) => p.userId == userId);
     if (idx < 0) return _playerColor(0);
     return _playerColor(idx);
   }
