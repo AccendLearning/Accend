@@ -9,7 +9,6 @@ import 'package:mobile_interface/src/features/social/controllers/social_controll
 import '../../../app/routes.dart' as routes;
 import '../../../app/constants.dart';
 import 'package:mobile_interface/src/features/group_session/controllers/group_session_controller.dart';
-import 'package:mobile_interface/src/features/group_session/models/private_lobby.dart';
 import '../data/session_topics.dart';
 import '../widgets/private_code_display.dart';
 
@@ -25,7 +24,6 @@ enum _GenStatus { loading, done, failed }
 class _GroupSessionPrivateCreatePageState extends State<GroupSessionPrivateCreatePage> {
   GroupSessionController? _ctrl;
   bool _isStarting = false;
-  bool _isNavigatingToActive = false;
   _GenStatus _genStatus = _GenStatus.loading;
   Future<void>? _genFuture;
   List<String> _lastFetchedIds = const [];
@@ -102,54 +100,14 @@ class _GroupSessionPrivateCreatePageState extends State<GroupSessionPrivateCreat
         );
         return;
       }
-      await ctrl.startPrivateLobbySession(lobbyId: id);
-      await ctrl.getLobby(lobbyId, showLoading: false);
-      await _enterActiveLobby(ctrl, lobbyId);
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to start session: $e')),
-      );
-    } finally {
-      if (mounted) setState(() => _isStarting = false);
-    }
-  }
-
-  Future<void> _enterActiveLobby(GroupSessionController ctrl, String lobbyId) async {
-    if (_isNavigatingToActive || !mounted) return;
-    _isNavigatingToActive = true;
-    try {
-      if (ctrl.sessionItems.isEmpty) {
-        await ctrl.fetchLobbyItems(lobbyKind: 'private', lobbyId: lobbyId);
-      }
-      if (!mounted) return;
-      await Navigator.pushNamed(
+      Navigator.pushNamed(
         context,
         routes.AppRoutes.groupSessionActiveLobby,
         arguments: 'private',
       );
     } finally {
-      _isNavigatingToActive = false;
+      if (mounted) setState(() => _isStarting = false);
     }
-  }
-
-  void _maybeAutoEnterActiveLobby(GroupSessionController ctrl) {
-    if (_isNavigatingToActive || !mounted) return;
-    final players = ctrl.privateLobby;
-    if (players.isEmpty) return;
-    final started = players.any((p) => p.sessionStart);
-    if (!started) return;
-    final lobbyId = players.first.lobbyId;
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      try {
-        await _enterActiveLobby(ctrl, lobbyId);
-      } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load session: $e')),
-        );
-      }
-    });
   }
 
   @override
@@ -179,12 +137,6 @@ class _GroupSessionPrivateCreatePageState extends State<GroupSessionPrivateCreat
     const maxPlayers = 5;
     final players = ctrl.privateLobby.toList()
       ..sort((a, b) => a.joinedAt.compareTo(b.joinedAt));
-    _maybeAutoEnterActiveLobby(ctrl);
-    final myRow = meId == null ? null : players.cast<PrivateLobby?>().firstWhere(
-      (p) => p?.userId == meId,
-      orElse: () => null,
-    );
-    final isHost = myRow?.host == true;
 
     // Trigger profile fetch whenever the player list changes.
     final ids = players.map((p) => p.userId).toList();
@@ -403,7 +355,6 @@ class _GroupSessionPrivateCreatePageState extends State<GroupSessionPrivateCreat
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: (ctrl.isLoading || ctrl.createPrivateLobby?.lobbyId == null || _isStarting)
-                          || !isHost
                           ? null
                           : () => _onStartPressed(ctrl),
                       icon: _isStarting
@@ -412,9 +363,7 @@ class _GroupSessionPrivateCreatePageState extends State<GroupSessionPrivateCreat
                       label: Text(
                         _isStarting
                             ? (_genStatus == _GenStatus.loading ? 'Preparing...' : 'Starting...')
-                            : (isHost
-                                ? (_genStatus == _GenStatus.failed ? 'Retry & Start' : 'Start')
-                                : 'Waiting for host to start'),
+                            : (_genStatus == _GenStatus.failed ? 'Retry & Start' : 'Start'),
                       ),
                     ),
                   ),

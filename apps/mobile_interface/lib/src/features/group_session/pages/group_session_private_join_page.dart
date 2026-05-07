@@ -5,7 +5,6 @@ import '../../../app/constants.dart';
 import '../controllers/group_session_controller.dart';
 import '../../../app/routes.dart' as routes;
 import 'package:mobile_interface/src/common/services/auth_service.dart';
-import 'package:mobile_interface/src/features/group_session/models/private_lobby.dart';
 import 'package:mobile_interface/src/features/social/controllers/social_controller.dart';
 import '../widgets/private_code_display.dart';
 
@@ -22,7 +21,6 @@ class _GroupSessionSelectPageState extends State<GroupSessionPrivateJoinPage> {
   GroupSessionController? _ctrl;
   String? _lobbyCode;
   bool _isStarting = false;
-  bool _isNavigatingToActive = false;
   List<String> _lastFetchedIds = const [];
 
   @override
@@ -60,45 +58,6 @@ class _GroupSessionSelectPageState extends State<GroupSessionPrivateJoinPage> {
     super.dispose();
   }
 
-  void _maybeAutoEnterActiveLobby(GroupSessionController ctrl) {
-    if (_isNavigatingToActive || !mounted) return;
-    final players = ctrl.privateLobby;
-    if (players.isEmpty) return;
-    final started = players.any((p) => p.sessionStart);
-    if (!started) return;
-    final lobbyId = players.first.lobbyId;
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      try {
-        await _enterActiveLobby(ctrl, lobbyId);
-      } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load session: $e')),
-        );
-      }
-    });
-  }
-
-  Future<void> _enterActiveLobby(GroupSessionController ctrl, String lobbyId) async {
-    if (_isNavigatingToActive || !mounted) return;
-    _isNavigatingToActive = true;
-    try {
-      if (ctrl.sessionItems.isEmpty) {
-        await ctrl.fetchLobbyItems(lobbyKind: 'private', lobbyId: lobbyId);
-      }
-      if (!mounted) return;
-      await Navigator.pushNamed(
-        context,
-        routes.AppRoutes.groupSessionActiveLobby,
-        arguments: 'private',
-      );
-    } finally {
-      _isNavigatingToActive = false;
-    }
-  }
-
-
-
   @override
   Widget build(BuildContext context) {
 
@@ -122,12 +81,6 @@ class _GroupSessionSelectPageState extends State<GroupSessionPrivateJoinPage> {
     const maxPlayers = 5;
     final players = ctrl.privateLobby.toList()
       ..sort((a, b) => a.joinedAt.compareTo(b.joinedAt));
-    _maybeAutoEnterActiveLobby(ctrl);
-    final myRow = meId == null ? null : players.cast<PrivateLobby?>().firstWhere(
-      (p) => p?.userId == meId,
-      orElse: () => null,
-    );
-    final isHost = myRow?.host == true;
 
     // Trigger profile fetch whenever the player list changes.
     final ids = players.map((p) => p.userId).toList();
@@ -348,18 +301,21 @@ class _GroupSessionSelectPageState extends State<GroupSessionPrivateJoinPage> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: (ctrl.isLoading || _lobbyCode == null || _isStarting || !isHost)
+                      onPressed: (ctrl.isLoading || _lobbyCode == null || _isStarting)
                           ? null
                           : () async {
                               setState(() => _isStarting = true);
                               try {
-                                final lobbyId = int.tryParse(_lobbyCode!);
-                                if (lobbyId == null) {
-                                  throw StateError('Invalid lobby id');
-                                }
-                                await ctrl.startPrivateLobbySession(lobbyId: lobbyId);
-                                await ctrl.getLobby(_lobbyCode!, showLoading: false);
-                                await _enterActiveLobby(ctrl, _lobbyCode!);
+                                await ctrl.fetchLobbyItems(
+                                  lobbyKind: 'private',
+                                  lobbyId: _lobbyCode!,
+                                );
+                                if (!mounted) return;
+                                Navigator.pushNamed(
+                                  context,
+                                  routes.AppRoutes.groupSessionActiveLobby,
+                                  arguments: 'private',
+                                );
                               } catch (e) {
                                 if (!mounted) return;
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -372,9 +328,7 @@ class _GroupSessionSelectPageState extends State<GroupSessionPrivateJoinPage> {
                       icon: _isStarting
                           ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                           : const Icon(Icons.play_arrow_rounded),
-                      label: Text(
-                        _isStarting ? 'Loading...' : (isHost ? 'Start' : 'Waiting for host to start'),
-                      ),
+                      label: Text(_isStarting ? 'Loading...' : 'Start'),
                     ),
                   ),
 

@@ -97,10 +97,6 @@ class LobbyNextRoundVoteOut(BaseModel):
     state: LobbyTurnStateOut
 
 
-class LobbySessionStartOut(BaseModel):
-    started: bool
-
-
 class LobbyItemOut(BaseModel):
     """
     A single pronunciation practice item stored in lobby_items.
