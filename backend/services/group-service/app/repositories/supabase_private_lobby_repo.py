@@ -15,7 +15,7 @@ routers -> services -> repositories -> supabase client
 from random import randint
 from uuid import UUID
 
-from app.clients.supabase import rest_delete, rest_get, rest_post
+from app.clients.supabase import rest_delete, rest_get, rest_patch, rest_post
 from app.schemas.private_lobby_schema import PrivateLobbyMemberOut, PrivateLobbyCreate, PrivateLobbyDeleteOut, PrivateLobbyJoin
 
 
@@ -118,5 +118,13 @@ class SupabasePrivateLobbyRepo:
             select="id",
         )
         return len(rows) > 0
-        
+
+    def start_session(self, lobby_id: int) -> bool:
+        rows = rest_patch(
+            table="private_lobbies",
+            match={"lobby_id": f"eq.{str(lobby_id)}"},
+            payload={"session_start": True},
+            select="id",
+        )
+        return len(rows) > 0
 

@@ -5,6 +5,7 @@ import '../../../app/constants.dart';
 import '../controllers/group_session_controller.dart';
 import '../../../app/routes.dart' as routes;
 import 'package:mobile_interface/src/common/services/auth_service.dart';
+import 'package:mobile_interface/src/features/group_session/models/private_lobby.dart';
 import 'package:mobile_interface/src/features/social/controllers/social_controller.dart';
 import '../widgets/private_code_display.dart';
 
@@ -21,6 +22,7 @@ class _GroupSessionSelectPageState extends State<GroupSessionPrivateJoinPage> {
   GroupSessionController? _ctrl;
   String? _lobbyCode;
   bool _isStarting = false;
+  bool _isNavigatingToActive = false;
   List<String> _lastFetchedIds = const [];
 
   @override
@@ -58,6 +60,36 @@ class _GroupSessionSelectPageState extends State<GroupSessionPrivateJoinPage> {
     super.dispose();
   }
 
+  void _maybeAutoEnterActiveLobby(GroupSessionController ctrl) {
+    if (_isNavigatingToActive || !mounted) return;
+    final players = ctrl.privateLobby;
+    if (players.isEmpty) return;
+    final started = players.any((p) => p.sessionStart);
+    if (!started) return;
+    _isNavigatingToActive = true;
+    final lobbyId = players.first.lobbyId;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        if (ctrl.sessionItems.isEmpty) {
+          await ctrl.fetchLobbyItems(lobbyKind: 'private', lobbyId: lobbyId);
+        }
+        if (!mounted) return;
+        await Navigator.pushNamed(
+          context,
+          routes.AppRoutes.groupSessionActiveLobby,
+          arguments: 'private',
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load session: $e')),
+        );
+      } finally {
+        _isNavigatingToActive = false;
+      }
+    });
+  }
+
 
 
   @override
@@ -83,6 +115,12 @@ class _GroupSessionSelectPageState extends State<GroupSessionPrivateJoinPage> {
     const maxPlayers = 5;
     final players = ctrl.privateLobby.toList()
       ..sort((a, b) => a.joinedAt.compareTo(b.joinedAt));
+    _maybeAutoEnterActiveLobby(ctrl);
+    final myRow = meId == null ? null : players.cast<PrivateLobby?>().firstWhere(
+      (p) => p?.userId == meId,
+      orElse: () => null,
+    );
+    final isHost = myRow?.host == true;
 
     // Trigger profile fetch whenever the player list changes.
     final ids = players.map((p) => p.userId).toList();
@@ -194,7 +232,7 @@ class _GroupSessionSelectPageState extends State<GroupSessionPrivateJoinPage> {
                                       itemBuilder: (context, index) {
                                         final p = players[index];
                                         final isMe = meId != null && p.userId == meId;
-                                        final isHost = p.host == p.userId;
+                                        final isHost = p.host;
                                         final suffix = '${isMe ? ' (you)' : ''}${isHost ? ' 👑' : ''}';
                                         final label = '${p.username}$suffix';
                                         final social = context.watch<SocialController>();
@@ -303,21 +341,17 @@ class _GroupSessionSelectPageState extends State<GroupSessionPrivateJoinPage> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: (ctrl.isLoading || _lobbyCode == null || _isStarting)
+                      onPressed: (ctrl.isLoading || _lobbyCode == null || _isStarting || !isHost)
                           ? null
                           : () async {
                               setState(() => _isStarting = true);
                               try {
-                                await ctrl.fetchLobbyItems(
-                                  lobbyKind: 'private',
-                                  lobbyId: _lobbyCode!,
-                                );
-                                if (!mounted) return;
-                                Navigator.pushNamed(
-                                  context,
-                                  routes.AppRoutes.groupSessionActiveLobby,
-                                  arguments: 'private',
-                                );
+                                final lobbyId = int.tryParse(_lobbyCode!);
+                                if (lobbyId == null) {
+                                  throw StateError('Invalid lobby id');
+                                }
+                                await ctrl.startPrivateLobbySession(lobbyId: lobbyId);
+                                await ctrl.getLobby(_lobbyCode!, showLoading: false);
                               } catch (e) {
                                 if (!mounted) return;
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -330,7 +364,9 @@ class _GroupSessionSelectPageState extends State<GroupSessionPrivateJoinPage> {
                       icon: _isStarting
                           ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                           : const Icon(Icons.play_arrow_rounded),
-                      label: Text(_isStarting ? 'Loading...' : 'Start'),
+                      label: Text(
+                        _isStarting ? 'Loading...' : (isHost ? 'Start' : 'Waiting for host to start'),
+                      ),
                     ),
                   ),
 

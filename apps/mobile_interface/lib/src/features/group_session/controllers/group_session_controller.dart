@@ -500,6 +500,20 @@ class GroupSessionController extends ChangeNotifier {
     );
   }
 
+  Future<Map<String, dynamic>> startPrivateLobbySession({
+    required int lobbyId,
+  }) async {
+    final token = _auth.accessToken;
+    if (token == null || token.isEmpty) {
+      throw StateError('Not authenticated');
+    }
+    return _api.postJson(
+      '/private_lobbies/$lobbyId/start',
+      accessToken: token,
+      body: const <String, dynamic>{},
+    );
+  }
+
   /// Generate 20 session items from the AI service for the given topic.
   ///
   /// Stores the result in [sessionItems]. Throws on network or API failure.

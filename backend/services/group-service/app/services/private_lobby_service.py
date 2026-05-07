@@ -95,3 +95,12 @@ class PrivateLobbyService:
             members=members,
             actor_user_id=actor_user_id,
         )
+
+    def start_session(self, *, lobby_id: int, actor_user_id: str) -> bool:
+        members = self.repo.get_lobby(lobby_id)
+        actor_row = next((m for m in members if m.user_id == actor_user_id), None)
+        if actor_row is None:
+            raise RuntimeError("Not a lobby member")
+        if not actor_row.host:
+            raise RuntimeError("Only host can start the session")
+        return self.repo.start_session(lobby_id)

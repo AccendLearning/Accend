@@ -9,6 +9,7 @@ import 'package:mobile_interface/src/features/social/controllers/social_controll
 import '../../../app/routes.dart' as routes;
 import '../../../app/constants.dart';
 import 'package:mobile_interface/src/features/group_session/controllers/group_session_controller.dart';
+import 'package:mobile_interface/src/features/group_session/models/private_lobby.dart';
 import '../data/session_topics.dart';
 import '../widgets/private_code_display.dart';
 
@@ -24,6 +25,7 @@ enum _GenStatus { loading, done, failed }
 class _GroupSessionPrivateCreatePageState extends State<GroupSessionPrivateCreatePage> {
   GroupSessionController? _ctrl;
   bool _isStarting = false;
+  bool _isNavigatingToActive = false;
   _GenStatus _genStatus = _GenStatus.loading;
   Future<void>? _genFuture;
   List<String> _lastFetchedIds = const [];
@@ -93,14 +95,48 @@ class _GroupSessionPrivateCreatePageState extends State<GroupSessionPrivateCreat
         );
         return;
       }
-      Navigator.pushNamed(
-        context,
-        routes.AppRoutes.groupSessionActiveLobby,
-        arguments: 'private',
-      );
+      final id = int.tryParse(lobbyId);
+      if (id == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid lobby id')),
+        );
+        return;
+      }
+      await ctrl.startPrivateLobbySession(lobbyId: id);
+      await ctrl.getLobby(lobbyId, showLoading: false);
     } finally {
       if (mounted) setState(() => _isStarting = false);
     }
+  }
+
+  void _maybeAutoEnterActiveLobby(GroupSessionController ctrl) {
+    if (_isNavigatingToActive || !mounted) return;
+    final players = ctrl.privateLobby;
+    if (players.isEmpty) return;
+    final started = players.any((p) => p.sessionStart);
+    if (!started) return;
+    _isNavigatingToActive = true;
+    final lobbyId = players.first.lobbyId;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        if (ctrl.sessionItems.isEmpty) {
+          await ctrl.fetchLobbyItems(lobbyKind: 'private', lobbyId: lobbyId);
+        }
+        if (!mounted) return;
+        await Navigator.pushNamed(
+          context,
+          routes.AppRoutes.groupSessionActiveLobby,
+          arguments: 'private',
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load session: $e')),
+        );
+      } finally {
+        _isNavigatingToActive = false;
+      }
+    });
   }
 
   @override
@@ -130,6 +166,12 @@ class _GroupSessionPrivateCreatePageState extends State<GroupSessionPrivateCreat
     const maxPlayers = 5;
     final players = ctrl.privateLobby.toList()
       ..sort((a, b) => a.joinedAt.compareTo(b.joinedAt));
+    _maybeAutoEnterActiveLobby(ctrl);
+    final myRow = meId == null ? null : players.cast<PrivateLobby?>().firstWhere(
+      (p) => p?.userId == meId,
+      orElse: () => null,
+    );
+    final isHost = myRow?.host == true;
 
     // Trigger profile fetch whenever the player list changes.
     final ids = players.map((p) => p.userId).toList();
@@ -238,7 +280,7 @@ class _GroupSessionPrivateCreatePageState extends State<GroupSessionPrivateCreat
                                       itemBuilder: (context, index) {
                                         final p = players[index];
                                         final isMe = meId != null && p.userId == meId;
-                                        final isHost = p.host == p.userId;
+                                        final isHost = p.host;
                                         final suffix = '${isMe ? ' (you)' : ''}${isHost ? ' 👑' : ''}';
                                         final label = '${p.username}$suffix';
                                         final social = context.watch<SocialController>();
@@ -348,6 +390,7 @@ class _GroupSessionPrivateCreatePageState extends State<GroupSessionPrivateCreat
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: (ctrl.isLoading || ctrl.createPrivateLobby?.lobbyId == null || _isStarting)
+                          || !isHost
                           ? null
                           : () => _onStartPressed(ctrl),
                       icon: _isStarting
@@ -356,7 +399,9 @@ class _GroupSessionPrivateCreatePageState extends State<GroupSessionPrivateCreat
                       label: Text(
                         _isStarting
                             ? (_genStatus == _GenStatus.loading ? 'Preparing...' : 'Starting...')
-                            : (_genStatus == _GenStatus.failed ? 'Retry & Start' : 'Start'),
+                            : (isHost
+                                ? (_genStatus == _GenStatus.failed ? 'Retry & Start' : 'Start')
+                                : 'Waiting for host to start'),
                       ),
                     ),
                   ),
