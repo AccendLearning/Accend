@@ -104,8 +104,32 @@ class _GroupSessionPrivateCreatePageState extends State<GroupSessionPrivateCreat
       }
       await ctrl.startPrivateLobbySession(lobbyId: id);
       await ctrl.getLobby(lobbyId, showLoading: false);
+      await _enterActiveLobby(ctrl, lobbyId);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to start session: $e')),
+      );
     } finally {
       if (mounted) setState(() => _isStarting = false);
+    }
+  }
+
+  Future<void> _enterActiveLobby(GroupSessionController ctrl, String lobbyId) async {
+    if (_isNavigatingToActive || !mounted) return;
+    _isNavigatingToActive = true;
+    try {
+      if (ctrl.sessionItems.isEmpty) {
+        await ctrl.fetchLobbyItems(lobbyKind: 'private', lobbyId: lobbyId);
+      }
+      if (!mounted) return;
+      await Navigator.pushNamed(
+        context,
+        routes.AppRoutes.groupSessionActiveLobby,
+        arguments: 'private',
+      );
+    } finally {
+      _isNavigatingToActive = false;
     }
   }
 
@@ -115,26 +139,15 @@ class _GroupSessionPrivateCreatePageState extends State<GroupSessionPrivateCreat
     if (players.isEmpty) return;
     final started = players.any((p) => p.sessionStart);
     if (!started) return;
-    _isNavigatingToActive = true;
     final lobbyId = players.first.lobbyId;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       try {
-        if (ctrl.sessionItems.isEmpty) {
-          await ctrl.fetchLobbyItems(lobbyKind: 'private', lobbyId: lobbyId);
-        }
-        if (!mounted) return;
-        await Navigator.pushNamed(
-          context,
-          routes.AppRoutes.groupSessionActiveLobby,
-          arguments: 'private',
-        );
+        await _enterActiveLobby(ctrl, lobbyId);
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to load session: $e')),
         );
-      } finally {
-        _isNavigatingToActive = false;
       }
     });
   }
